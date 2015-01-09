@@ -45,8 +45,13 @@
         return to_index(this.x, this.y);
     };
 
+    Tile.prototype.activate = function() {
+        this.dom.bind('touchstart click', this.listener);
+    };
+
     Tile.prototype.deactivate = function() {
         this.active = false;
+        this.dom.unbind('touchstart click');
     };
 
     Tile.prototype.check_match = function(tile) {
@@ -136,9 +141,6 @@
     };
 
     Tile.prototype.get_neighbours = function() {
-        if (!this.active) {
-            return [];
-        }
 
         var correct = [
             this.neighbours.above,
@@ -208,6 +210,8 @@
 
         var steps = 0;
 
+        
+
         this.draw_tile = function(selector, tile) {
             var tile_td = $('<td></td>');
             var tile_div = $('<div></div>');
@@ -232,7 +236,11 @@
                     $(that.currently_selected.dom[0]).addClass('tile__matched');
                     el.addClass('tile__matched');
                     tile.deactivate();
+                    _.each(tile.get_neighbours(), function(t) {
+                        t.set_neighbours();
+                    });
                     that.currently_selected.deactivate();
+
 
                     $('.tile').removeClass('tile__hint tile__selected tile__good_match tile__bad_match');
 
@@ -259,10 +267,9 @@
                 that.draw_hint();
             };
 
-            tile.dom = tile_div;
-            
             var flag = false;
-            tile.dom.bind('touchstart click', function() {
+            
+            var callback_timeout = function() {
                 if (!flag) {
                     flag = true;
                     setTimeout(function() {
@@ -271,7 +278,10 @@
                     callback.bind(this)();
                 }
                 return false;
-            });
+            };
+
+            tile.dom = tile_div;
+            tile.listener = callback_timeout;
 
         };
 
@@ -297,6 +307,7 @@
         this.draw_hint = function() {
             var left_matches = that.board.left_matches();
             _.each(left_matches, function(tile) {
+                tile.activate();
                 tile.dom.addClass('tile__hint');
             });
             // no matches left
