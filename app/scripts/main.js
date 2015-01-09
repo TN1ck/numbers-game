@@ -202,6 +202,7 @@
     var Game = function(root) {
 
         var that = this;
+        this.board = new Board(9);
 
         this.root = root;
 
@@ -236,10 +237,10 @@
                     $(that.currently_selected.dom[0]).addClass('tile__matched');
                     el.addClass('tile__matched');
                     tile.deactivate();
-                    _.each(tile.get_neighbours(), function(t) {
+                    that.currently_selected.deactivate();
+                    _.each(that.board.tiles, function(t) {
                         t.set_neighbours();
                     });
-                    that.currently_selected.deactivate();
 
 
                     $('.tile').removeClass('tile__hint tile__selected tile__good_match tile__bad_match');
