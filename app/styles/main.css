@@ -75,11 +75,27 @@ body {
 
 .tile__matched {
   background-color: rgba(238, 228, 218, 0.35) !important;
+  color: #776e65 !important;
 }
 
-.tile__hint {
+.tile__hint_1 {
   background-color: #f1c40f;
-  /*color: white;*/
+  color: white;
+}
+
+.tile__hint_2 {
+  background-color: #e67e22;
+  color: white;
+}
+
+.tile__hint_3 {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.tile__hint_4 {
+  background-color: #c0392b;
+  color: white;
 }
 
 .explaination {

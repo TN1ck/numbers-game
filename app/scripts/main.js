@@ -227,6 +227,10 @@
                 tile_div.addClass('tile__matched');
             }
 
+            var removeClasses = function() {
+                $('.tile').removeClass('tile__hint_1 tile__hint_2 tile__hint3 tile__hint_4 tile__selected tile__good_match tile__bad_match');
+            };
+
             var callback = function() {
                 var el = $(this);
                 
@@ -242,15 +246,14 @@
                         t.set_neighbours();
                     });
 
-
-                    $('.tile').removeClass('tile__hint tile__selected tile__good_match tile__bad_match');
+                    removeClasses();
 
                     that.draw_hint();
 
                     return;
                 }
                 
-                $('.tile').removeClass('tile__hint tile__selected tile__good_match tile__bad_match');
+                removeClasses();
 
                 el.addClass('tile__selected');
 
@@ -309,7 +312,12 @@
             var left_matches = that.board.left_matches();
             _.each(left_matches, function(tile) {
                 tile.activate();
-                tile.dom.addClass('tile__hint');
+                var matches = tile.get_neighbours().filter(function(d) {
+                    return tile.check_match(d);
+                });
+                var number_of_matches = matches.length;
+                console.log(number_of_matches, matches);
+                tile.dom.addClass('tile__hint_' + number_of_matches);
             });
             // no matches left
             if (left_matches.length === 0) {
