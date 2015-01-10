@@ -211,7 +211,9 @@
 
         var steps = 0;
 
-        
+        var removeClasses = function() {
+            $('.tile').removeClass('tile__hint_1 tile__hint_2 tile__hint3 tile__hint_4 tile__selected tile__good_match tile__bad_match');
+        };
 
         this.draw_tile = function(selector, tile) {
             var tile_td = $('<td></td>');
@@ -227,9 +229,6 @@
                 tile_div.addClass('tile__matched');
             }
 
-            var removeClasses = function() {
-                $('.tile').removeClass('tile__hint_1 tile__hint_2 tile__hint3 tile__hint_4 tile__selected tile__good_match tile__bad_match');
-            };
 
             var callback = function() {
                 var el = $(this);
@@ -317,6 +316,7 @@
                 });
                 var number_of_matches = matches.length;
                 console.log(number_of_matches, matches);
+                removeClasses();
                 tile.dom.addClass('tile__hint_' + number_of_matches);
             });
             // no matches left
