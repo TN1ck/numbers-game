@@ -35,10 +35,10 @@ body {
 
 .board {
   float: left;
-  width: 100%;
 }
 
-.board table {
+.board .table {
+  float: left;
   background-color: #bbada0;
   padding: 2px;
   border-radius: 5px;
@@ -46,10 +46,49 @@ body {
   margin-top: 20px;
 }
 
+.tile_row {
+  float: left;
+  visibility: visible;
+}
+
+.tile_row__hidden {
+  /*visibility: hidden;*/
+  overflow: hidden;
+  height: 10px;
+}
+
+.tile_row__lines {
+  position: relative;
+  margin-bottom: 4px;
+  float: left;
+}
+
+.tile_row__button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60px;
+  height: 26px;
+  margin-top: -11px;
+  margin-left: -31px;
+  text-align: center;
+
+  background: #8f7a66;
+  font-size: 14px;
+  line-height: 26px;
+  border-radius: 3px;
+  color: white;
+  /*cursor: pointer;*/
+}
+
+.tile_cell {
+  float: left;
+}
+
 .tile {
   /*font-weight: bold;*/
   background-color: #eee4da;
-  margin: 2px;
+  margin: 4px;
   padding: 5px;
   line-height: 48px;
   border-radius: 4px;
@@ -178,11 +217,23 @@ body {
   }
 
   .tile {
-    margin: 0;
+    margin: 2px;
     height: 30px;
     width: 30px;
     line-height: 30px;
     font-size: 16px;
+  }
+
+  .tile_row__button {
+    width: 40px;
+    height: 20px;
+    line-height: 20px;
+    margin-top: -10px;
+    margin-left: -20px;
+  }
+
+  .tile_row__lines {
+    margin-bottom: 2px;
   }
 
   .title {
@@ -207,9 +258,23 @@ body {
     width: 300px;
   }
 
+  .tile_row__button {
+    width: 30px;
+    height: 18px;
+    font-size: 12px;
+    line-height: 18px;
+    margin-top: -8px;
+    margin-left: -19px;
+  }
+
+  .tile_row__lines {
+    margin-bottom: 2px;
+  }
+
   .tile {
-    height: 20px;
-    width: 20px;
-    line-height: 20px;
+    margin: 2px;
+    height: 18px;
+    width: 18px;
+    line-height: 18px;
   }
 }

@@ -4,16 +4,56 @@
 
 (function() {
 
+    var caro_game = window.caro_game || {};
+    window.caro_game = caro_game;
+
+    var base = 9;
+
     var to_xy = function(n) {
         return {
-            y: Math.floor(n / 9),
-            x: n % 9
+            y: Math.floor(n / base),
+            x: n % base
         };
     };
 
     var to_index = function(x, y) {
-        return y * 9 + x;
+        return y * base + x;
     };
+
+    var partition_by = function(list, fun) {
+        var partitioned = [];
+        var current = [];
+        var last_elem_result;
+        
+        _.each(list, function(d, i) {
+            
+            var result = fun(d);
+            
+            if ((result === last_elem_result || i === 0)) {
+                current.push(d);
+            } else {
+                partitioned.push(current);
+                current = [d];
+            }
+
+            if (i === (list.length - 1)) {
+                partitioned.push(current);
+            }
+
+            last_elem_result = result;
+
+        });
+
+        return partitioned;
+    };
+
+    var drop_while = function(array, predicate) {
+        var index = -1, length = array ? array.length : 0;
+        
+        while (++index < length && predicate(array[index])) {}
+        return array.splice(index, array.length);
+    };
+
 
     var Tile = function(v, board) {
         
@@ -55,7 +95,7 @@
     };
 
     Tile.prototype.check_match = function(tile) {
-        return tile.v + this.v === 10 || tile.v === this.v;
+        return tile.v + this.v === (base + 1) || tile.v === this.v;
     };
 
     Tile.prototype.set_above = function() {
@@ -154,6 +194,15 @@
         });
     };
 
+    Tile.prototype.get_matches = function() {
+        var that = this;
+
+        return that.get_neighbours().filter(function(d) {
+            return that.check_match(d);
+        });
+
+    };
+
     var Board = function(columns) {
         var that = this;
         
@@ -176,21 +225,30 @@
         };
 
         that.update = function() {
-            var left_tiles = that.tiles.filter(_.property('active'));
-            if (left_tiles.length === 0) {
-                window.alert('You won the game! Congrats!');
-            }
-            _.each(left_tiles, function(t) {
+
+            var active_tiles = this.active_tiles();
+            
+            _.each(active_tiles, function(t) {
                 new Tile(t.v, that);
+
+            });
+
+        };
+
+        that.active_tiles = function() {
+            return that.tiles.filter(_.property('active'));
+        };
+
+        that.inactive_tiles = function() {
+            return that.tiles.filter(function(d) {
+                return !d.active;
             });
         };
 
         that.left_matches = function() {
             var result = [];
-            _.each(that.tiles.filter(_.property('active')), function(tile) {
-                var neighbours = tile.get_neighbours().filter(function(d) {
-                    return tile.check_match(d);
-                });
+            _.each(this.active_tiles(), function(tile) {
+                var neighbours = tile.get_matches();
                 result = result.concat(neighbours);
             });
             return result;
@@ -202,7 +260,7 @@
     var Game = function(root) {
 
         var that = this;
-        this.board = new Board(9);
+        this.board = new Board(base);
 
         this.root = root;
 
@@ -211,63 +269,62 @@
 
         var steps = 0;
 
-        var removeClasses = function() {
-            $('.tile').removeClass('tile__hint_1 tile__hint_2 tile__hint3 tile__hint_4 tile__selected tile__good_match tile__bad_match');
+        var removeClasses = function(selection) {
+            return selection.removeClass('tile__hint_1 tile__hint_2 tile__hint3 tile__hint_4 tile__selected tile__good_match tile__bad_match');
         };
 
         this.draw_tile = function(selector, tile) {
-            var tile_td = $('<td></td>');
-            var tile_div = $('<div></div>');
-            tile_td.append(tile_div);
+            var tile_td = $('<div></div>').addClass('tile_cell');
+            
+            tile.dom = $('<div></div>');
+            tile.dom_parent = selector;
+            tile_td.append(tile.dom);
             selector.append(tile_td);
             
-            tile_div
+            tile.dom
                 .addClass('tile')
                 .html(tile.v);
 
             if (!tile.active) {
-                tile_div.addClass('tile__matched');
+                tile.dom.addClass('tile__matched');
             }
 
 
             var callback = function() {
-                var el = $(this);
                 
-                if (el.hasClass('tile__good_match')) {
+                if (tile.dom.hasClass('tile__good_match')) {
 
                     steps++;
                     $score.html(steps);
-                    $(that.currently_selected.dom[0]).addClass('tile__matched');
-                    el.addClass('tile__matched');
+                    
+                    that.currently_selected.dom.addClass('tile__matched');
+                    tile.dom.addClass('tile__matched');
                     tile.deactivate();
                     that.currently_selected.deactivate();
-                    _.each(that.board.tiles, function(t) {
+                    
+                    _.each(that.board.active_tiles(), function(t) {
                         t.set_neighbours();
                     });
 
-                    removeClasses();
+                    removeClasses($('.tile'));
 
-                    that.draw_hint();
+                    that.update();
 
                     return;
                 }
                 
-                removeClasses();
+                removeClasses($('.tile'));
 
-                el.addClass('tile__selected');
+                tile.dom.addClass('tile__selected');
 
-                var neighbours = tile.get_neighbours();
+                var neighbours = tile.get_matches();
                 _.each(neighbours, function(t) {
-                    var match = tile.check_match(t);
-                    if (match) {
-                        t.dom.addClass('tile__good_match');
-                    } else {
-                        t.dom.addClass('tile__bad_match');
-                    }
+                    t.dom.addClass('tile__good_match');
                 });
 
                 that.currently_selected = tile;
-                that.draw_hint();
+                
+                that.update();
             };
 
             var flag = false;
@@ -283,62 +340,192 @@
                 return false;
             };
 
-            tile.dom = tile_div;
             tile.listener = callback_timeout;
 
         };
 
         this.draw_board = function() {
 
-            that.root.html('');
+            var tiles = that.board.tiles.filter(function(d) {
+                return !d.dom;
+            });
+
+            var drawn_tiles = that.board.tiles.filter(function(d) {
+                return d.dom;
+            });
             
-            var table = $('<table></table>');
-            that.root.append(table);
+            if (!that.table) {
+                that.table = $('<div></div>').addClass('table');
+                that.root.append(that.table);
+            }
             
             var selector;
-            _.each(that.board.tiles, function(tile, i) {
-                if (i % 9 === 0) {
-                    var tr = $('<tr></tr>').addClass('tile_row');
-                    table.append(tr);
+            var tr_created;
+
+            _.each(tiles, function(tile) {
+
+                if (drawn_tiles.length && !tr_created) {
+                    selector = _.last(drawn_tiles).dom_parent;
+                    tr_created = true;
+                }
+
+                if (tile.x === 0) {
+                    var tr;
+
+                    if (!tr) {
+                        tr = $('<div></div>').addClass('tile_row');
+                        that.table.append(tr);
+                    }
                     selector = tr;
                 }
+
                 that.draw_tile(selector, tile);
             });
 
         };
 
-        this.draw_hint = function() {
-            var left_matches = that.board.left_matches();
-            _.each(left_matches, function(tile) {
-                tile.activate();
-                var matches = tile.get_neighbours().filter(function(d) {
-                    return tile.check_match(d);
-                });
-                var number_of_matches = matches.length;
-                console.log(number_of_matches, matches);
-                removeClasses();
-                tile.dom.addClass('tile__hint_' + number_of_matches);
+        this.update = function() {
+            var left_tiles = [];
+
+            // hints
+            _.each(this.board.active_tiles(), function(tile) {
+                var matches = tile.get_matches();
+                left_tiles = left_tiles.concat(matches);
+                if (matches.length > 0) {
+                    tile.activate();
+                    tile.dom.removeClass('tile__hint_1 tile__hint_2 tile__hint3 tile__hint_4');
+                    tile.dom.addClass('tile__hint_' + matches.length);
+                }
             });
-            // no matches left
-            if (left_matches.length === 0) {
-                that.board.update();
-                that.draw_board();
-                that.draw_hint();
+
+            var partitioned_tiles = partition_by(this.board.tiles, _.property('active'));
+            var min_rows = 1;
+
+            var inactive_rows = partitioned_tiles
+                .filter(function(d) {
+                    return !d[0].active;
+                })
+                .filter(function(d) {
+                    return d.length > (min_rows * base);
+                })
+                .map(function(d) {
+                    var result = drop_while(d, function(dd) {
+                        return dd.x !== 0;
+                    });
+
+                    var result_reversed = _.clone(result).reverse();
+
+                    result = drop_while(result_reversed, function(dd) {
+                        return dd.x !== (base - 1);
+                    });
+
+                    return result.reverse();
+                })
+                .filter(function(d) {
+                    return d.length > (min_rows * base);
+                });
+
+            _.each(inactive_rows, function(row) {
+
+                var hidden_rows;
+
+                var rows = row.length/base;
+
+                _.each(row, function(tile) {
+                    if (tile.dom_parent_parent) {
+                        if (hidden_rows && !hidden_rows.is(tile.dom_parent_parent)) {
+                            hidden_rows.append(tile.dom_parent_parent.children());
+                            if (hidden_rows.dom_parent_parent && !hidden_rows.dom_parent_parent.children().length) {
+                                tile.dom_parent_parent.remove();
+                            }
+                        } else {
+                            hidden_rows = tile.dom_parent_parent;
+                        }
+                    }
+                });
+
+                if (!hidden_rows) {
+                    hidden_rows = $('<div></div>')
+                        .addClass('tile_row__lines');
+
+                    var button = $('<div></div>').addClass('tile_row__button').html(rows);
+                    hidden_rows.append(button);
+
+                    row[0].dom_parent.before(hidden_rows);
+                }
+
+                _.each(row, function(tile) {
+                    if(tile.x === 0 && !tile.is_hidden) {
+                        tile.dom_parent.addClass('tile_row__hidden');
+                        hidden_rows.append(tile.dom_parent);
+                        tile.is_hidden = true;
+                        tile.dom_parent_parent = hidden_rows;
+                    }
+                });
+
+                hidden_rows.find('.tile_row__button').html(rows);
+
+            });
+
+            if (this.board.active_tiles().length === 0) {
+                window.alert('You won the game! Congrats!');
+                return;
             }
 
+            if (left_tiles.length === 0) {
+                this.board.update();
+                this.draw_board();
+                this.update();
+            }
 
         };
 
         this.run = function() {
-            this.board = new Board(9);
+            this.board = new Board(base);
             this.draw_board();
-            this.draw_hint();
+            this.update();
         };
 
         this.restart = function() {
             $score.html(0);
             steps = 0;
+            that.table.html('');
             that.run();
+        };
+
+        this.win = function() {
+            _.each(this.board.tiles, function(tile) {
+                tile.deactivate();
+            });
+            this.update();
+        };
+
+        this.auto_pilot = function() {
+            var that = this;
+            var left_tiles = [];
+
+            // hints
+            _.each(this.board.active_tiles(), function(tile) {
+                var matches = tile.get_matches();
+                left_tiles = left_tiles.concat(matches);
+            });
+
+            var tile = left_tiles[_.random(left_tiles.length - 1)];
+            tile.dom.click();
+
+            setTimeout(function() {
+                var elems = $('.tile__good_match');
+                var el = $(elems[_.random(elems.length - 1)]);
+                el.click();
+                if (!that.stop_the_pilot) {
+                    that.auto_pilot();
+                }
+            }, 200);
+
+        };
+
+        this.stop_pilot = function() {
+            this.stop_the_pilot = true;
         };
  
         $new_game.bind('click', this.restart);
@@ -350,6 +537,7 @@
     var game = new Game(root);
 
     game.run();
+
+    caro_game.game = game;
     
 })();
-
