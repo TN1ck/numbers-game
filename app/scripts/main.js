@@ -74,7 +74,17 @@
         this.set_neighbours();
 
         this.active = true;
+        this.matchable = false;
+        this.selecetd = false;
+
         board.tiles.push(this);
+    };
+
+    Tile.prototype.classes = {
+        selected: 'tile__selected',
+        matchable: 'tile__good_match',
+        hint: ['tile__hint_1', 'tile__hint_2', 'tile__hint_3', 'tile__hint_4'],
+        inactive: 'tile__matched'
     };
 
     Tile.prototype.to_xy = function() {
@@ -85,13 +95,47 @@
         return to_index(this.x, this.y);
     };
 
-    Tile.prototype.activate = function() {
+
+    Tile.prototype.bind_listener = function() {
         this.dom.bind('touchstart click', this.listener);
     };
 
-    Tile.prototype.deactivate = function() {
-        this.active = false;
+    Tile.prototype.unbind_listener = function() {
         this.dom.unbind('touchstart click');
+    };
+
+    Tile.prototype.deactivate = function() {
+        
+        this.active = false;
+        
+        var below = this.neighbours.below;
+        if (below) { below.neighbours.above = false; }
+        var above = this.neighbours.above;
+        if (above) { above.neighbours.below = false; }
+        var right = this.neighbours.right;
+        if (right) { right.neighbours.left = false; }
+        var left = this.neighbours.left;
+        if (left) { left.neighbours.right = false; }
+
+        _.each(this.get_neighbours(), function(t) {
+            t.matchable = false;
+        });
+
+        this.unbind_listener();
+    };
+
+    Tile.prototype.select = function() {
+        this.selected = true;
+        _.each(this.get_matches(), function(t) {
+            t.matchable = true;
+        });
+    };
+
+    Tile.prototype.deselect = function() {
+        this.selected = false;
+        _.each(this.get_matches(), function(t) {
+            t.matchable = false;
+        });
     };
 
     Tile.prototype.check_match = function(tile) {
@@ -99,9 +143,16 @@
     };
 
     Tile.prototype.set_above = function() {
-        // count y as long up as you don't hit the ceiling and a active tile is found
-        var x = this.x;
-        var y = this.y - 1;
+
+        var x, y;
+
+        if (!this.neighbours.above) {
+            x = this.x;
+            y = this.y - 1;
+        } else {
+            x = this.neighbours.above.x;
+            y = this.neighbours.above.y;
+        }
 
         var possible_tile = true;
         
@@ -116,11 +167,22 @@
         } else {
             this.neighbours.above = false;
         }
+
     };
 
     Tile.prototype.set_below = function() {
-        var x = this.x;
-        var y = this.y + 1;
+        
+        var x, y;
+
+        // start from current neighbour
+
+        if (!this.neighbours.below) {
+            x = this.x;
+            y = this.y + 1;
+        } else {
+            x = this.neighbours.below.x;
+            y = this.neighbours.below.y;
+        }
 
         var possible_tile = true;
         
@@ -138,7 +200,14 @@
     };
 
     Tile.prototype.set_right = function() {
-        var n = this.to_index() + 1;
+
+        var n;
+        
+        if (!this.neighbours.right) {
+            n = this.to_index() + 1;
+        } else {
+            n = this.neighbours.right.to_index();
+        }
 
         var possible_tile = true;
         
@@ -156,7 +225,14 @@
     };
 
     Tile.prototype.set_left = function() {
-        var n = this.to_index() - 1;
+        
+        var n;
+        
+        if (!this.neighbours.left) {
+            n = this.to_index() - 1;
+        } else {
+            n = this.neighbours.left.to_index();
+        }
 
         var possible_tile = true;
         
@@ -203,6 +279,45 @@
 
     };
 
+    Tile.prototype.setClass = function() {
+
+        if (!this.active) {
+            this.className = this.classes.inactive;
+            return;
+        }
+
+        if (this.selected) {
+            this.className = this.classes.selected;
+            return;
+        }
+
+        if (this.matchable) {
+            this.className = this.classes.matchable;
+            return;
+        }
+
+        var number_of_matches = this.get_matches().length;
+
+        if (number_of_matches > 0) {
+            this.className = this.classes.hint[number_of_matches - 1];
+            return;
+        }
+
+        this.className = '';
+
+
+    };
+
+    Tile.prototype.update_dom = function() {
+        this.setClass();
+        if (this.get_matches().length) {
+            this.bind_listener();
+        } else {
+            this.unbind_listener();
+        }
+        this.dom.attr('class', 'tile ' + this.className);
+    };
+
     var Board = function(columns) {
         var that = this;
         
@@ -230,8 +345,9 @@
             
             _.each(active_tiles, function(t) {
                 new Tile(t.v, that);
-
             });
+
+            _.invoke(active_tiles, 'update_dom');
 
         };
 
@@ -269,10 +385,6 @@
 
         var steps = 0;
 
-        var removeClasses = function(selection) {
-            return selection.removeClass('tile__hint_1 tile__hint_2 tile__hint3 tile__hint_4 tile__selected tile__good_match tile__bad_match');
-        };
-
         this.draw_tile = function(selector, tile) {
             var tile_td = $('<div></div>').addClass('tile_cell');
             
@@ -291,40 +403,38 @@
 
 
             var callback = function() {
+
                 
-                if (tile.dom.hasClass('tile__good_match')) {
+                if (tile.matchable) {
 
                     steps++;
                     $score.html(steps);
                     
-                    that.currently_selected.dom.addClass('tile__matched');
-                    tile.dom.addClass('tile__matched');
-                    tile.deactivate();
-                    that.currently_selected.deactivate();
+                    var matched_tiles = [tile, that.currently_selected];
+                    _.invoke(matched_tiles, 'deactivate');
                     
-                    _.each(that.board.active_tiles(), function(t) {
-                        t.set_neighbours();
-                    });
-
-                    removeClasses($('.tile'));
+                    var affected_tiles = tile.get_neighbours().concat(that.currently_selected.get_neighbours());
+                    _.invoke(affected_tiles, 'set_neighbours');
+                    _.invoke(affected_tiles.concat(matched_tiles), 'update_dom');
 
                     that.update();
 
                     return;
                 }
-                
-                removeClasses($('.tile'));
 
-                tile.dom.addClass('tile__selected');
+                var old_selection = [];
 
-                var neighbours = tile.get_matches();
-                _.each(neighbours, function(t) {
-                    t.dom.addClass('tile__good_match');
-                });
+                if (that.currently_selected) {
+                    that.currently_selected.deselect();
+                    old_selection = that.currently_selected.get_neighbours().concat(that.currently_selected);
+                }
 
+                tile.select();
+                _.invoke(tile.get_neighbours().concat([tile]).concat(old_selection), 'update_dom');
                 that.currently_selected = tile;
-                
+
                 that.update();
+
             };
 
             var flag = false;
@@ -341,6 +451,7 @@
             };
 
             tile.listener = callback_timeout;
+            tile.update_dom();
 
         };
 
@@ -380,6 +491,7 @@
                 }
 
                 that.draw_tile(selector, tile);
+
             });
 
         };
@@ -387,15 +499,9 @@
         this.update = function() {
             var left_tiles = [];
 
-            // hints
             _.each(this.board.active_tiles(), function(tile) {
                 var matches = tile.get_matches();
                 left_tiles = left_tiles.concat(matches);
-                if (matches.length > 0) {
-                    tile.activate();
-                    tile.dom.removeClass('tile__hint_1 tile__hint_2 tile__hint3 tile__hint_4');
-                    tile.dom.addClass('tile__hint_' + matches.length);
-                }
             });
 
             var partitioned_tiles = partition_by(this.board.tiles, _.property('active'));
@@ -496,36 +602,42 @@
         this.win = function() {
             _.each(this.board.tiles, function(tile) {
                 tile.deactivate();
+                tile.update_dom();
             });
             this.update();
         };
 
-        this.auto_pilot = function() {
+        this.pilot_running = false;
+
+        this.toggle_pilot = function() {
+
+            this.pilot_running = !this.pilot_running;
             var that = this;
-            var left_tiles = [];
 
-            // hints
-            _.each(this.board.active_tiles(), function(tile) {
-                var matches = tile.get_matches();
-                left_tiles = left_tiles.concat(matches);
-            });
+            var run = function() {
+                var left_tiles = [];
 
-            var tile = left_tiles[_.random(left_tiles.length - 1)];
-            tile.dom.click();
+                // hints
+                _.each(that.board.active_tiles(), function(tile) {
+                    var matches = tile.get_matches();
+                    left_tiles = left_tiles.concat(matches);
+                });
 
-            setTimeout(function() {
-                var elems = $('.tile__good_match');
-                var el = $(elems[_.random(elems.length - 1)]);
-                el.click();
-                if (!that.stop_the_pilot) {
-                    that.auto_pilot();
-                }
-            }, 200);
+                var tile = left_tiles[_.random(left_tiles.length - 1)];
+                tile.dom.click();
 
-        };
+                setTimeout(function() {
+                    var elems = $('.tile__good_match');
+                    var el = $(elems[_.random(elems.length - 1)]);
+                    el.click();
+                    if (that.pilot_running) {
+                        run();
+                    }
+                }, 5);
+            };
 
-        this.stop_pilot = function() {
-            this.stop_the_pilot = true;
+            run();
+
         };
  
         $new_game.bind('click', this.restart);
