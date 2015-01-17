@@ -273,9 +273,22 @@
     Tile.prototype.get_matches = function() {
         var that = this;
 
-        return that.get_neighbours().filter(function(d) {
+        var matches = that.get_neighbours().filter(function(d) {
             return that.check_match(d);
         });
+
+        // remove duplicates
+        return matches.filter(function(t, i) {
+            var duplicates = matches.filter(function(tt, j) {
+                if (i === j) {
+                    return false;
+                } else {
+                    return (t.x === tt.x) && (t.y === tt.y);
+                }
+            });
+            return duplicates.length === 0;
+        });
+
 
     };
 
