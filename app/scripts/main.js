@@ -1,4 +1,4 @@
-/* global $, _ */
+/* global $, _, React*/
 
 'use strict';
 
@@ -47,12 +47,144 @@
         return partitioned;
     };
 
+    var split_at = function(list, fun) {
+
+        var splitted = [];
+        var current = [];
+
+        _.each(list, function(d, i) {
+
+            var result = fun(d);
+
+            if (result) {
+                if (current.length > 0) {
+                    splitted.push(current);
+                    current = [];
+                }
+                current.push(d);
+                return;
+            } else {
+                current.push(d);
+            }
+
+            if (i === (list.length - 1)) {
+                splitted.push(current);
+            }
+        });
+
+        return splitted;
+    };
+
     var drop_while = function(array, predicate) {
         var index = -1, length = array ? array.length : 0;
         
         while (++index < length && predicate(array[index])) {}
         return array.splice(index, array.length);
     };
+
+    var ReactBoard = React.createClass({
+        displayName: 'Board',
+        getInitialState: function() {
+            return {board: new Board(base)};
+        },
+        restartGame: function() {
+            this.setState(this.getInitialState());
+        },
+        componentDidMount: function() {
+
+        },
+        render: function() {
+            var rows = this.props.board.getRows().map(function(row) {
+                return new ReactRow({tiles: row, board: this.props.board});
+            });
+            return React.createElement('div', {className: 'table', children: rows}, null);
+        }
+    });
+
+    var ReactRow = React.createClass({
+        displayName: 'Row',
+        render: function() {
+            var tiles = this.props.tiles.map(function(tile) {
+                return new ReactTile({tile: tile, board: this.props.board});
+            });
+            return React.createElement('div', {className: 'tile_row', children: tiles}, null);
+        }
+    });
+
+    var ReactTile = React.createClass({
+        displyName: 'Tile',
+        render: function() {
+            this.draw_tile = function(selector, tile) {
+                var tile_td = $('<div></div>').addClass('tile_cell');
+                
+                tile.dom = $('<div></div>');
+                tile.dom_parent = selector;
+                tile_td.append(tile.dom);
+                selector.append(tile_td);
+                
+                tile.dom
+                    .addClass('tile')
+                    .html(tile.v);
+
+                if (!tile.active) {
+                    tile.dom.addClass('tile__matched');
+                }
+
+
+                var callback = function() {
+
+                    
+                    if (tile.matchable) {
+
+                        steps++;
+                        $score.html(steps);
+                        
+                        var matched_tiles = [tile, that.currently_selected];
+                        _.invoke(matched_tiles, 'deactivate');
+                        
+                        var affected_tiles = tile.get_neighbours().concat(that.currently_selected.get_neighbours());
+                        _.invoke(affected_tiles, 'set_neighbours');
+                        _.invoke(affected_tiles.concat(matched_tiles), 'update_dom');
+
+                        that.update();
+
+                        return;
+                    }
+
+                    var old_selection = [];
+
+                    if (that.currently_selected) {
+                        that.currently_selected.deselect();
+                        old_selection = that.currently_selected.get_neighbours().concat(that.currently_selected);
+                    }
+
+                    tile.select();
+                    _.invoke(tile.get_neighbours().concat([tile]).concat(old_selection), 'update_dom');
+                    that.currently_selected = tile;
+
+                    that.update();
+
+                };
+
+                var flag = false;
+                
+                var callback_timeout = function() {
+                    if (!flag) {
+                        flag = true;
+                        setTimeout(function() {
+                            flag = false;
+                        }, 200);
+                        callback.bind(this)();
+                    }
+                    return false;
+                };
+
+                tile.listener = callback_timeout;
+                tile.update_dom();
+
+            };
+        }
+    });
 
 
     var Tile = function(v, board) {
@@ -337,6 +469,15 @@
                     });
                 });
             });
+        };
+
+        this.getRows = function() {
+            
+            var rows = split_at(this.tiles, function(t) {
+                return t.x === 0;
+            });
+
+            return rows;
         };
 
         that.update = function() {
