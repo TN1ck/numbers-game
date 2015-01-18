@@ -1,4 +1,4 @@
-/* global $, _, React */
+/* global _, React */
 
 'use strict';
 
@@ -74,12 +74,12 @@
         return partitioned;
     };
 
-    var drop_while = function(array, predicate) {
-        var index = -1, length = array ? array.length : 0;
+    // var drop_while = function(array, predicate) {
+    //     var index = -1, length = array ? array.length : 0;
         
-        while (++index < length && predicate(array[index])) {}
-        return array.splice(index, array.length);
-    };
+    //     while (++index < length && predicate(array[index])) {}
+    //     return array.splice(index, array.length);
+    // };
 
 
     var Tile = function(v, board) {
@@ -325,7 +325,6 @@
             if (tile.matchable) {
 
                 tile.board.steps++;
-                // $score.html(steps);
                 
                 var matched_tiles = [tile, other_tile];
                 _.invoke(matched_tiles, 'deactivate');
@@ -479,8 +478,8 @@
                 }
 
                 setTimeout(function() {
-                    var elems = $('.tile__good_match');
-                    var el = $(elems[_.random(elems.length - 1)]);
+                    var elems = document.getElementsByClassName('tile__good_match');
+                    var el = elems[_.random(elems.length - 1)];
                     el.click();
                     if (that.pilot_running) {
                         run();
