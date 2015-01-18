@@ -44,8 +44,6 @@
             }
         });
 
-        console.log(splitted, current);
-
         return splitted;
     };
 
