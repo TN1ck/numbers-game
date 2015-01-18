@@ -35,7 +35,6 @@
                     current = [];
                 }
                 current.push(d);
-                return;
             } else {
                 current.push(d);
             }
@@ -44,6 +43,8 @@
                 splitted.push(current);
             }
         });
+
+        console.log(splitted, current);
 
         return splitted;
     };
