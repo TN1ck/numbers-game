@@ -331,11 +331,81 @@
         this.dom.attr('class', 'tile ' + this.className);
     };
 
-    var Board = function(columns) {
+    Tile.prototype.draw = function(row) {
+            
+        var tile = this;
+        var tile_td = $('<div></div>').addClass('tile_cell');
+        
+        tile.dom = $('<div></div>');
+        tile.dom_parent = row;
+        tile_td.append(tile.dom);
+        row.append(tile_td);
+        
+        tile.dom
+            .addClass('tile')
+            .html(tile.v);
+
+        var callback = function() {
+
+            var other_tile = tile.board.currently_selected;
+            
+            if (tile.matchable) {
+
+                tile.board.steps++;
+                // $score.html(steps);
+                
+                var matched_tiles = [tile, other_tile];
+                _.invoke(matched_tiles, 'deactivate');
+                
+                var affected_tiles = tile.get_neighbours().concat(other_tile.get_neighbours());
+                _.invoke(affected_tiles, 'set_neighbours');
+                _.invoke(affected_tiles.concat(matched_tiles), 'update_dom');
+
+                tile.board.update();
+
+                return;
+            }
+
+            var old_selection = [];
+
+            if (other_tile) {
+                other_tile.deselect();
+                old_selection = other_tile.get_neighbours().concat(other_tile);
+            }
+
+            tile.select();
+            _.invoke(tile.get_neighbours().concat([tile]).concat(old_selection), 'update_dom');
+            
+            tile.board.currently_selected = tile;
+
+            tile.board.update();
+
+        };
+
+        var flag = false;
+        
+        var callback_timeout = function() {
+            if (!flag) {
+                flag = true;
+                setTimeout(function() {
+                    flag = false;
+                }, 200);
+                callback.bind(this)();
+            }
+            return false;
+        };
+
+        tile.listener = callback_timeout;
+        tile.update_dom();
+
+    };
+
+    var Board = function(root, game) {
         var that = this;
         
-        this.columns = columns;
         this.tiles = [];
+        this.steps = 0;
+        this.root = root;
 
         this.get_tile = function(x, y) {
             return that.tiles[to_index(x, y)];
@@ -343,7 +413,7 @@
         
         that.init = function() {
             _.each([0, 1], function(row) {
-                _.each(_.range(that.columns), function(col) {
+                _.each(_.range(base), function(col) {
                     var value = '' + (row * 10 + col + 1);
                     _.each(_.range(value.length), function(i) {
                         new Tile(Number(value[i]), that);
@@ -354,170 +424,7 @@
 
         that.update = function() {
 
-            var active_tiles = this.active_tiles();
-            
-            _.each(active_tiles, function(t) {
-                new Tile(t.v, that);
-            });
-
-            _.invoke(active_tiles, 'update_dom');
-
-        };
-
-        that.active_tiles = function() {
-            return that.tiles.filter(_.property('active'));
-        };
-
-        that.inactive_tiles = function() {
-            return that.tiles.filter(function(d) {
-                return !d.active;
-            });
-        };
-
-        that.left_matches = function() {
-            var result = [];
-            _.each(this.active_tiles(), function(tile) {
-                var neighbours = tile.get_matches();
-                result = result.concat(neighbours);
-            });
-            return result;
-        };
-
-        that.init();
-    };
-
-    var Game = function(root) {
-
-        var that = this;
-        this.board = new Board(base);
-
-        this.root = root;
-
-        var $score = $('#score_number');
-        var $new_game = $('#new_game');
-
-        var steps = 0;
-
-        this.draw_tile = function(selector, tile) {
-            var tile_td = $('<div></div>').addClass('tile_cell');
-            
-            tile.dom = $('<div></div>');
-            tile.dom_parent = selector;
-            tile_td.append(tile.dom);
-            selector.append(tile_td);
-            
-            tile.dom
-                .addClass('tile')
-                .html(tile.v);
-
-            if (!tile.active) {
-                tile.dom.addClass('tile__matched');
-            }
-
-
-            var callback = function() {
-
-                
-                if (tile.matchable) {
-
-                    steps++;
-                    $score.html(steps);
-                    
-                    var matched_tiles = [tile, that.currently_selected];
-                    _.invoke(matched_tiles, 'deactivate');
-                    
-                    var affected_tiles = tile.get_neighbours().concat(that.currently_selected.get_neighbours());
-                    _.invoke(affected_tiles, 'set_neighbours');
-                    _.invoke(affected_tiles.concat(matched_tiles), 'update_dom');
-
-                    that.update();
-
-                    return;
-                }
-
-                var old_selection = [];
-
-                if (that.currently_selected) {
-                    that.currently_selected.deselect();
-                    old_selection = that.currently_selected.get_neighbours().concat(that.currently_selected);
-                }
-
-                tile.select();
-                _.invoke(tile.get_neighbours().concat([tile]).concat(old_selection), 'update_dom');
-                that.currently_selected = tile;
-
-                that.update();
-
-            };
-
-            var flag = false;
-            
-            var callback_timeout = function() {
-                if (!flag) {
-                    flag = true;
-                    setTimeout(function() {
-                        flag = false;
-                    }, 200);
-                    callback.bind(this)();
-                }
-                return false;
-            };
-
-            tile.listener = callback_timeout;
-            tile.update_dom();
-
-        };
-
-        this.draw_board = function() {
-
-            var tiles = that.board.tiles.filter(function(d) {
-                return !d.dom;
-            });
-
-            var drawn_tiles = that.board.tiles.filter(function(d) {
-                return d.dom;
-            });
-            
-            if (!that.table) {
-                that.table = $('<div></div>').addClass('table');
-                that.root.append(that.table);
-            }
-            
-            var selector;
-            var tr_created;
-
-            _.each(tiles, function(tile) {
-
-                if (drawn_tiles.length && !tr_created) {
-                    selector = _.last(drawn_tiles).dom_parent;
-                    tr_created = true;
-                }
-
-                if (tile.x === 0) {
-                    var tr;
-
-                    if (!tr) {
-                        tr = $('<div></div>').addClass('tile_row');
-                        that.table.append(tr);
-                    }
-                    selector = tr;
-                }
-
-                that.draw_tile(selector, tile);
-
-            });
-
-        };
-
-        this.update = function() {
-            var left_tiles = [];
-
-            _.each(this.board.active_tiles(), function(tile) {
-                var matches = tile.get_matches();
-                left_tiles = left_tiles.concat(matches);
-            });
-
-            var partitioned_tiles = partition_by(this.board.tiles, _.property('active'));
+            var partitioned_tiles = partition_by(this.tiles, _.property('active'));
             var min_rows = 1;
 
             var inactive_rows = partitioned_tiles
@@ -586,30 +493,120 @@
 
             });
 
-            if (this.board.active_tiles().length === 0) {
+            if (this.active_tiles().length === 0) {
                 window.alert('You won the game! Congrats!');
                 return;
             }
 
+            var left_tiles = _.flatten(_.invoke(this.active_tiles(), 'get_matches'));
+
             if (left_tiles.length === 0) {
-                this.board.update();
-                this.draw_board();
-                this.update();
+                
+                var active_tiles = this.active_tiles();
+                
+                _.each(active_tiles, function(t) {
+                    new Tile(t.v, that);
+                });
+
+                _.invoke(active_tiles, 'update_dom');
+
+                this.draw();
             }
 
+            game.update();
+
+
+        };
+
+        this.draw = function() {
+
+            var that = this;
+
+            var tiles = that.tiles.filter(function(d) {
+                return !d.dom;
+            });
+
+            var drawn_tiles = that.tiles.filter(function(d) {
+                return d.dom;
+            });
+            
+            if (!that.table) {
+                that.table = $('<div></div>').addClass('table');
+                that.root.append(that.table);
+            }
+            
+            var selector;
+            var tr_created;
+
+            _.each(tiles, function(tile) {
+
+                if (drawn_tiles.length && !tr_created) {
+                    selector = _.last(drawn_tiles).dom_parent;
+                    tr_created = true;
+                }
+
+                if (tile.x === 0) {
+                    var tr;
+
+                    if (!tr) {
+                        tr = $('<div></div>').addClass('tile_row');
+                        that.table.append(tr);
+                    }
+                    selector = tr;
+                }
+
+                tile.draw(selector);
+
+            });
+
+        };
+
+        that.active_tiles = function() {
+            return that.tiles.filter(_.property('active'));
+        };
+
+        that.inactive_tiles = function() {
+            return that.tiles.filter(function(d) {
+                return !d.active;
+            });
+        };
+
+        that.left_matches = function() {
+            var result = [];
+            _.each(this.active_tiles(), function(tile) {
+                var neighbours = tile.get_matches();
+                result = result.concat(neighbours);
+            });
+            return result;
+        };
+
+        that.init();
+    };
+
+    var Game = function(root) {
+
+        var that = this;
+
+        this.root = root;
+
+        var $score = $('#score_number');
+        var $new_game = $('#new_game');
+
+        this.update = function() {
+            $score.html(this.board.steps);
         };
 
         this.run = function() {
-            this.board = new Board(base);
-            this.draw_board();
-            this.update();
+            this.board = new Board(this.root, this);
+            this.board.draw();
+            this.board.update();
+            $new_game.bind('click', this.restart);
         };
 
         this.restart = function() {
-            $score.html(0);
-            steps = 0;
-            that.table.html('');
+            that.root.html('');
             that.run();
+            that.update();
         };
 
         this.win = function() {
@@ -617,10 +614,9 @@
                 tile.deactivate();
                 tile.update_dom();
             });
+            this.board.update();
             this.update();
         };
-
-        this.pilot_running = false;
 
         this.toggle_pilot = function() {
 
@@ -652,9 +648,6 @@
             run();
 
         };
- 
-        $new_game.bind('click', this.restart);
-
 
     };
 
