@@ -330,10 +330,8 @@
                 
                 var matched_tiles = [tile, other_tile];
                 _.invoke(matched_tiles, 'deactivate');
-                
-                var affected_tiles = tile.get_neighbours().concat(other_tile.get_neighbours());
-                _.invoke(affected_tiles, 'set_neighbours');
-                _.invoke(affected_tiles.concat(matched_tiles), 'update');
+                // brute force!
+                _.invoke(tile.board.active_tiles().concat(matched_tiles), 'update');
 
                 tile.board.update();
 
