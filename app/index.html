@@ -23,24 +23,27 @@
     <![endif]-->
 
     <div class="container">
-      <div class="header">
-        <div class="title">
-          <h2>DSMDZACP</h2>
-          <p>Das Spiel mit den Zahlen auf Caropapier</p>
-        </div>
-        <div class="buttons">
-          <div class="score">
-            <div class="small">steps</div>
-            <span id="score_number">0</span>
-          </div>
-          <div id="new_game" class="new">
-            New Game
-          </div>
-        </div>
+      <div class="title">
+        <h2>DSMDZACP</h2>
+        <p>Das Spiel mit den Zahlen auf Caropapier</p>
       </div>
-      <div class="board" id="game"></div>
+      <div id="react">
+        <div class="header">
+          <div class="buttons">
+            <div class="score">
+              <div class="small">steps</div>
+              <span id="score_number">0</span>
+            </div>
+            <div id="new_game" class="new">
+              New Game
+            </div>
+          </div>
+        </div>
+        <div class="board" id="game"></div>
+      </div>
       <p class="explaination"><b>How to play:</b> Click on one of the colored tiles and select one matching tile (two tiles are matchable when they are next to each and and sum up to 10 or have the same value). After no tiles are matchable, the current active tiles are appended to the end of the game-board, the goal is to match every tile.</p>
     </div>
+    <br/>
     <div class="footer">
       <p>♥ from Tom</p>
     </div>

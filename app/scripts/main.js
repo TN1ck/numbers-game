@@ -104,6 +104,7 @@
         this.active = true;
         this.matchable = false;
         this.selecetd = false;
+        this.listener = this.get_callback();
 
         board.tiles.push(this);
     };
@@ -307,7 +308,7 @@
 
     };
 
-    Tile.prototype.set_class = function() {
+    Tile.prototype.update = function() {
 
         if (!this.active) {
             this.className = this.classes.inactive;
@@ -355,7 +356,7 @@
                 
                 var affected_tiles = tile.get_neighbours().concat(other_tile.get_neighbours());
                 _.invoke(affected_tiles, 'set_neighbours');
-                _.invoke(affected_tiles.concat(matched_tiles), 'set_class');
+                _.invoke(affected_tiles.concat(matched_tiles), 'update');
 
                 tile.board.update();
 
@@ -370,7 +371,7 @@
             }
 
             tile.select();
-            _.invoke(tile.get_neighbours().concat([tile]).concat(old_selection), 'set_class');
+            _.invoke(tile.get_neighbours().concat([tile]).concat(old_selection), 'update');
             
             tile.board.currently_selected = tile;
             tile.board.update();
@@ -394,12 +395,13 @@
     };
 
 
-    var Board = function(root, game) {
+    var Board = function() {
         var that = this;
         
         this.tiles = [];
         this.steps = 0;
-        this.root = root;
+
+        caro_game.board = this;
 
         this.get_tile = function(x, y) {
             return that.tiles[to_index(x, y)];
@@ -426,7 +428,7 @@
                 });
             });
 
-            _.invoke(this.tiles, 'set_class');
+            _.invoke(this.tiles, 'update');
         };
 
         that.update = function() {
@@ -446,10 +448,8 @@
                     new Tile(t.v, that);
                 });
 
-                _.invoke(this.tiles, 'set_class');
+                _.invoke(this.tiles, 'update');
             }
-
-            // game.update();
 
         };
 
@@ -477,39 +477,6 @@
 
     var Game = function(root) {
 
-        var that = this;
-
-        this.root = root;
-
-        var $score = $('#score_number');
-        var $new_game = $('#new_game');
-
-        this.update = function() {
-            $score.html(this.board.steps);
-        };
-
-        this.run = function() {
-            this.board = new Board(this.root, this);
-            this.board.draw();
-            this.board.update();
-            $new_game.bind('click', this.restart);
-        };
-
-        this.restart = function() {
-            that.root.html('');
-            that.run();
-            that.update();
-        };
-
-        this.win = function() {
-            _.each(this.board.tiles, function(tile) {
-                tile.deactivate();
-                tile.update_dom();
-            });
-            this.board.update();
-            this.update();
-        };
-
         this.toggle_pilot = function() {
 
             this.pilot_running = !this.pilot_running;
@@ -519,13 +486,22 @@
                 var left_tiles = [];
 
                 // hints
-                _.each(that.board.active_tiles(), function(tile) {
+                _.each(caro_game.board.active_tiles(), function(tile) {
                     var matches = tile.get_matches();
                     left_tiles = left_tiles.concat(matches);
                 });
 
-                var tile = left_tiles[_.random(left_tiles.length - 1)];
-                tile.dom.click();
+                var tiles = [];
+                _.each(['tile__hint_1', 'tile__hint_2', 'tile__hint_3', 'tile__hint_4'], function(tile_class) {
+                    var selection = [].slice.call(document.getElementsByClassName(tile_class));
+                    tiles = tiles.concat(selection);
+                });
+
+                var tile = tiles[_.random(0, tiles.length - 1)];
+
+                if (tile) {
+                    tile.click();
+                }
 
                 setTimeout(function() {
                     var elems = $('.tile__good_match');
@@ -534,48 +510,71 @@
                     if (that.pilot_running) {
                         run();
                     }
-                }, 5);
+                }, 100);
             };
 
             run();
 
         };
 
+        this.run = function() {
+            this.react = new ReactGame();
+            React.render(
+                this.react,
+                root
+            );
+        };
+
     };
 
     var ReactGame = React.createFactory(React.createClass({
         displayName: 'Game',
-        render: function() {
-            return new ReactBoard();
-        }
-    }));
-
-    var ReactBoard = React.createFactory(React.createClass({
-        displayName: 'Board',
         getInitialState: function() {
             return {board: new Board(base)};
         },
         restartGame: function() {
             this.setState(this.getInitialState());
         },
-        componentDidMount: function() {
+        render: function() {
+            var that = this;
+            // I see why JSX is recommended
+            return React.createElement('div', {}, [
+                React.createElement('div', {className: 'header', key: 'header'},
+                    React.createElement('div', {className: 'buttons'},
+                        [React.createElement('div', {className: 'score', key: 'score'},
+                            React.createElement('div', {className: 'small'}, 'steps'), that.state.board.steps),
+                         React.createElement('div', {className: 'new', key: 'new', onClick: that.restartGame}, 'New Game')
+                         ])),
+                React.createElement('div', {className: 'board', key: 'board'}, new ReactBoard({board: that.state.board, game: that}))
+            ]);
+        }
+    }));
 
-        },
+    var ReactBoard = React.createFactory(React.createClass({
+        displayName: 'Board',
         render: function() {
             var that = this;
 
             // some magic to hide rows
-            var rows = that.state.board.get_rows();
+            var rows = that.props.board.get_rows();
             var splitted_rows = partition_by(rows, _.property('active'));
 
             var result = splitted_rows.map(function(splitted, i) {
+
+                var hidden_rows = [
+                    splitted.map(function(row, j) {
+                        return new ReactRow({row: row, key: j, game: that.props.game});
+                    })
+                ];
+
+                if (splitted.length > 1 && !splitted[0].active) {
+                    hidden_rows.push(React.createElement('div', {className: 'tile_row__button', key: 'button'}, splitted.length));
+                }
+
                 return React.createElement('div', {
-                    className: '',
+                    className: 'tile_row__lines',
                     key: i
-                },
-                splitted.map(function(row, j) {
-                    return new ReactRow({row: row, key: j, board: that});
-                }));
+                }, hidden_rows);
             });
             return React.createElement('div', {className: 'table'}, result);
         }
@@ -586,7 +585,7 @@
         render: function() {
             var that = this;
             var tiles = this.props.row.tiles.map(function(tile, i) {
-                return new ReactTile({tile: tile, key: i, board: that.props.board});
+                return new ReactTile({tile: tile, key: i, game: that.props.game});
             });
             return React.createElement('div', {
                 className: 'tile_row' + (that.props.row.active ? '' : ' tile_row__hidden')
@@ -597,26 +596,32 @@
     var ReactTile = React.createFactory(React.createClass({
         displayName: 'Tile',
         render: function() {
-            
             var that = this;
 
             var callback = function(e) {
-                that.props.tile.get_callback().bind(this)(e);
-                that.props.board.setState(that.props.tile.board);
+                that.props.tile.listener.bind(this)(e);
+                that.props.game.setState(that.props.tile.board);
             };
+
             callback = that.props.tile.get_matches().length > 0 ?  callback : null;
 
+            var settings = {
+                className: ['tile', that.props.tile.className].join(' '),
+            };
+
+            if (callback) {
+                settings.onTouchStart = callback;
+                settings.onClick = callback;
+            }
+
             return React.createElement('div', {className: 'tile_cell'},
-                React.createElement('div', {
-                    className: ['tile', that.props.tile.className].join(' '),
-                    onClick: callback
-                }, that.props.tile.v));
+                React.createElement('div', settings, that.props.tile.v));
         }
     }));
 
-    React.render(
-        new ReactGame(),
-        document.getElementById('game')
-    );
+    var game = new Game(document.getElementById('react'));
+    game.run();
+
+    caro_game.game = game;
     
 })();

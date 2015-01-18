@@ -26,6 +26,8 @@ body {
 }
 
 .footer {
+  float: left;
+  width: 100%;
   color: #777;
   border-top: 1px solid #e5e5e5;
   text-align: right;
@@ -139,12 +141,11 @@ body {
 
 .explaination {
   line-height: 28px;
+  float: left;
 }
 
 .header {
-  float: left;
-  width: 100%;
-  margin-bottom: 15px;
+  float: right;
 }
 
 .title {
@@ -161,7 +162,7 @@ body {
 }
 
 .buttons {
-  float: right;
+  float: left;
 }
 
 .score {
@@ -240,7 +241,7 @@ body {
     float: none;
   }
 
-  .buttons {
+  .header {
     float: left;
   }
 }
