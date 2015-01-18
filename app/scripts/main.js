@@ -270,7 +270,7 @@
         // remove duplicates
         return matches.filter(function(t, i) {
             var duplicates = matches.filter(function(tt, j) {
-                if (i === j) {
+                if (i <= j) {
                     return false;
                 } else {
                     return (t.x === tt.x) && (t.y === tt.y);
@@ -330,8 +330,9 @@
                 
                 var matched_tiles = [tile, other_tile];
                 _.invoke(matched_tiles, 'deactivate');
-                // brute force!
-                _.invoke(tile.board.active_tiles().concat(matched_tiles), 'update');
+                
+                var affected_tiles = tile.get_neighbours().concat(other_tile.get_neighbours());
+                _.invoke(affected_tiles.concat(matched_tiles), 'update');
 
                 tile.board.update();
 
