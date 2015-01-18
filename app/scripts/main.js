@@ -412,9 +412,7 @@
                 return;
             }
 
-            var left_tiles = _.flatten(_.invoke(this.active_tiles(), 'get_matches'));
-
-            if (left_tiles.length === 0) {
+            if (this.left_matches().length === 0) {
                 
                 var active_tiles = this.active_tiles();
                 
@@ -423,6 +421,11 @@
                 });
 
                 _.invoke(this.tiles, 'update');
+            }
+
+            // happens!
+            if (this.left_matches().length === 0) {
+                this.update();
             }
 
         };
@@ -438,12 +441,7 @@
         };
 
         that.left_matches = function() {
-            var result = [];
-            _.each(this.active_tiles(), function(tile) {
-                var neighbours = tile.get_matches();
-                result = result.concat(neighbours);
-            });
-            return result;
+            return _.flatten(_.invoke(this.active_tiles(), 'get_matches'));
         };
 
         that.init();
