@@ -99,8 +99,6 @@
             left: false
         };
 
-        this.set_neighbours();
-
         this.active = true;
         this.matchable = false;
         this.selecetd = false;
@@ -162,15 +160,8 @@
 
     Tile.prototype.set_above = function() {
 
-        var x, y;
-
-        if (!this.neighbours.above) {
-            x = this.x;
-            y = this.y - 1;
-        } else {
-            x = this.neighbours.above.x;
-            y = this.neighbours.above.y;
-        }
+        var x = this.x;
+        var y = this.y - 1;
 
         var possible_tile = true;
         
@@ -181,7 +172,6 @@
 
         if (possible_tile) {
             this.neighbours.above = possible_tile;
-            possible_tile.neighbours.below = this;
         } else {
             this.neighbours.above = false;
         }
@@ -189,16 +179,9 @@
     };
 
     Tile.prototype.set_below = function() {
-        
-        var x, y;
 
-        if (!this.neighbours.below) {
-            x = this.x;
-            y = this.y + 1;
-        } else {
-            x = this.neighbours.below.x;
-            y = this.neighbours.below.y;
-        }
+        var x = this.x;
+        var y = this.y + 1;
 
         var possible_tile = true;
         
@@ -209,7 +192,6 @@
 
         if (possible_tile) {
             this.neighbours.below = possible_tile;
-            possible_tile.neighbours.above = this;
         } else {
             this.neighbours.below = false;
         }
@@ -217,13 +199,7 @@
 
     Tile.prototype.set_right = function() {
 
-        var n;
-        
-        if (!this.neighbours.right) {
-            n = this.to_index() + 1;
-        } else {
-            n = this.neighbours.right.to_index();
-        }
+        var n = this.to_index() + 1;
 
         var possible_tile = true;
         
@@ -234,7 +210,6 @@
 
         if (possible_tile) {
             this.neighbours.right = possible_tile;
-            possible_tile.neighbours.left = this;
         } else {
             this.neighbours.right = false;
         }
@@ -242,13 +217,7 @@
 
     Tile.prototype.set_left = function() {
         
-        var n;
-        
-        if (!this.neighbours.left) {
-            n = this.to_index() - 1;
-        } else {
-            n = this.neighbours.left.to_index();
-        }
+        var n = this.to_index() - 1;
 
         var possible_tile = true;
         
@@ -259,13 +228,13 @@
 
         if (possible_tile) {
             this.neighbours.left = possible_tile;
-            possible_tile.neighbours.right = this;
         } else {
             this.neighbours.left = false;
         }
     };
 
     Tile.prototype.set_neighbours = function() {
+
         this.set_above();
         this.set_below();
         this.set_right();
@@ -287,6 +256,11 @@
     };
 
     Tile.prototype.get_matches = function() {
+
+        if (!this.active) {
+            return [];
+        }
+
         var that = this;
 
         var matches = that.get_neighbours().filter(function(d) {
@@ -309,6 +283,8 @@
     };
 
     Tile.prototype.update = function() {
+
+        this.set_neighbours();
 
         if (!this.active) {
             this.className = this.classes.inactive;
@@ -333,6 +309,7 @@
         }
 
         this.className = '';
+
 
 
     };
@@ -582,6 +559,9 @@
 
     var ReactRow = React.createFactory(React.createClass({
         displayName: 'Row',
+        shouldComponentUpdate: function() {
+            return this.props.row.active;
+        },
         render: function() {
             var that = this;
             var tiles = this.props.row.tiles.map(function(tile, i) {
