@@ -280,7 +280,7 @@
         // remove duplicates
         return matches.filter(function(t, i) {
             var duplicates = matches.filter(function(tt, j) {
-                if (i === j) {
+                if (i <= j) {
                     return false;
                 } else {
                     return (t.x === tt.x) && (t.y === tt.y);
@@ -498,9 +498,7 @@
                 return;
             }
 
-            var left_tiles = _.flatten(_.invoke(this.active_tiles(), 'get_matches'));
-
-            if (left_tiles.length === 0) {
+            if (this.left_matches().length === 0) {
                 
                 var active_tiles = this.active_tiles();
                 
@@ -511,6 +509,10 @@
                 _.invoke(active_tiles, 'update_dom');
 
                 this.draw();
+
+                if (this.left_matches().length === 0) {
+                    this.update();
+                }
             }
 
             game.update();
@@ -572,12 +574,7 @@
         };
 
         that.left_matches = function() {
-            var result = [];
-            _.each(this.active_tiles(), function(tile) {
-                var neighbours = tile.get_matches();
-                result = result.concat(neighbours);
-            });
-            return result;
+            return _.flatten(_.invoke(this.active_tiles(), 'get_matches'));
         };
 
         that.init();
