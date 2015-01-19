@@ -1,4 +1,4 @@
-/* global $, _, React */
+/* global _, React */
 
 'use strict';
 
@@ -35,7 +35,6 @@
                     current = [];
                 }
                 current.push(d);
-                return;
             } else {
                 current.push(d);
             }
@@ -75,13 +74,12 @@
         return partitioned;
     };
 
-    var drop_while = function(array, predicate) {
-        var index = -1, length = array ? array.length : 0;
+    // var drop_while = function(array, predicate) {
+    //     var index = -1, length = array ? array.length : 0;
         
-        while (++index < length && predicate(array[index])) {}
-        return array.splice(index, array.length);
-    };
-
+    //     while (++index < length && predicate(array[index])) {}
+    //     return array.splice(index, array.length);
+    // };
 
     var Tile = function(v, board) {
         
@@ -158,87 +156,32 @@
         return tile.v + this.v === (base + 1) || tile.v === this.v;
     };
 
-    Tile.prototype.set_above = function() {
+    Tile.prototype.get_neighbour = function(neighbour, inc) {
+        
+        var n = this.to_index() + inc;
 
-        var x = this.x;
-        var y = this.y - 1;
+        if (this.neighbours[neighbour]) {
+            n = this.neighbours[neighbour].to_index();
+        }
 
         var possible_tile = true;
-        
-        while(possible_tile && !possible_tile.active) {
-            possible_tile = this.board.get_tile(x, y);
-            y--;
-        }
 
-        if (possible_tile) {
-            this.neighbours.above = possible_tile;
-        } else {
-            this.neighbours.above = false;
-        }
-
-    };
-
-    Tile.prototype.set_below = function() {
-
-        var x = this.x;
-        var y = this.y + 1;
-
-        var possible_tile = true;
-        
-        while(possible_tile && !possible_tile.active) {
-            possible_tile = this.board.get_tile(x, y);
-            y++;
-        }
-
-        if (possible_tile) {
-            this.neighbours.below = possible_tile;
-        } else {
-            this.neighbours.below = false;
-        }
-    };
-
-    Tile.prototype.set_right = function() {
-
-        var n = this.to_index() + 1;
-
-        var possible_tile = true;
-        
         while(possible_tile && !possible_tile.active) {
             possible_tile = this.board.tiles[n];
-            n++;
+            n += inc;
         }
 
-        if (possible_tile) {
-            this.neighbours.right = possible_tile;
-        } else {
-            this.neighbours.right = false;
-        }
-    };
+        return possible_tile ? possible_tile : false;
 
-    Tile.prototype.set_left = function() {
-        
-        var n = this.to_index() - 1;
-
-        var possible_tile = true;
-        
-        while(possible_tile && !possible_tile.active) {
-            possible_tile = this.board.tiles[n];
-            n--;
-        }
-
-        if (possible_tile) {
-            this.neighbours.left = possible_tile;
-        } else {
-            this.neighbours.left = false;
-        }
     };
 
     Tile.prototype.set_neighbours = function() {
 
-        this.set_above();
-        this.set_below();
-        this.set_right();
-        this.set_left();
+        this.neighbours.above = this.get_neighbour('above', -base);
+        this.neighbours.below = this.get_neighbour('below', base);
+        this.neighbours.right = this.get_neighbour('right', 1);
+        this.neighbours.left = this.get_neighbour('left', -1);
+
     };
 
     Tile.prototype.get_neighbours = function() {
@@ -270,7 +213,7 @@
         // remove duplicates
         return matches.filter(function(t, i) {
             var duplicates = matches.filter(function(tt, j) {
-                if (i === j) {
+                if (i <= j) {
                     return false;
                 } else {
                     return (t.x === tt.x) && (t.y === tt.y);
@@ -326,13 +269,11 @@
             if (tile.matchable) {
 
                 tile.board.steps++;
-                // $score.html(steps);
                 
                 var matched_tiles = [tile, other_tile];
                 _.invoke(matched_tiles, 'deactivate');
                 
                 var affected_tiles = tile.get_neighbours().concat(other_tile.get_neighbours());
-                _.invoke(affected_tiles, 'set_neighbours');
                 _.invoke(affected_tiles.concat(matched_tiles), 'update');
 
                 tile.board.update();
@@ -415,9 +356,7 @@
                 return;
             }
 
-            var left_tiles = _.flatten(_.invoke(this.active_tiles(), 'get_matches'));
-
-            if (left_tiles.length === 0) {
+            if (this.left_matches().length === 0) {
                 
                 var active_tiles = this.active_tiles();
                 
@@ -426,6 +365,11 @@
                 });
 
                 _.invoke(this.tiles, 'update');
+            }
+
+            // happens!
+            if (this.left_matches().length === 0) {
+                this.update();
             }
 
         };
@@ -441,12 +385,7 @@
         };
 
         that.left_matches = function() {
-            var result = [];
-            _.each(this.active_tiles(), function(tile) {
-                var neighbours = tile.get_matches();
-                result = result.concat(neighbours);
-            });
-            return result;
+            return _.flatten(_.invoke(this.active_tiles(), 'get_matches'));
         };
 
         that.init();
@@ -481,8 +420,8 @@
                 }
 
                 setTimeout(function() {
-                    var elems = $('.tile__good_match');
-                    var el = $(elems[_.random(elems.length - 1)]);
+                    var elems = document.getElementsByClassName('tile__good_match');
+                    var el = elems[_.random(elems.length - 1)];
                     el.click();
                     if (that.pilot_running) {
                         run();
