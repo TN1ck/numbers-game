@@ -99,7 +99,7 @@
 
         this.active = true;
         this.matchable = false;
-        this.selecetd = false;
+        this.selected = false;
         this.listener = this.get_callback();
 
         board.tiles.push(this);
@@ -257,16 +257,40 @@
 
     };
 
+    Tile.prototype.serialize = function() {
+        
+        var that = this;
+
+        return {
+            x: that.x,
+            y: that.y,
+            v: that.v,
+            active: that.active
+        };
+
+    };
+
+    Tile.prototype.deserialize = function(tile_dict, board) {
+        _.extend(this, tile_dict);
+        this.neighbours.above = false;
+        this.neighbours.below = false;
+        this.neighbours.left = false;
+        this.neighbours.right = false;
+        this.board = board;
+        this.listener = this.get_callback();
+    };
+
     Tile.prototype.get_callback = function() {
 
         var tile = this;
 
         var callback = function() {
 
-
             var other_tile = tile.board.currently_selected;
 
             if (tile.matchable) {
+
+                tile.board.save();
 
                 tile.board.steps++;
                 
@@ -321,6 +345,9 @@
 
         caro_game.board = this;
 
+        this.board_history = [];
+        this.iterations = 0;
+
         this.get_tile = function(x, y) {
             return that.tiles[to_index(x, y)];
         };
@@ -349,6 +376,32 @@
             _.invoke(this.tiles, 'update');
         };
 
+        that.save = function() {
+            this.board_history.push(_.invoke(this.tiles, 'serialize'));
+            if (this.board_history.length > 100) {
+                this.board_history.shift();
+            }
+        };
+
+        that.step_back = function() {
+            if (this.board_history.length === 0) {
+                return;
+            }
+            var last_state = this.board_history.pop();
+            this.set_state(last_state);
+            this.steps--;
+        };
+
+        this.set_state = function(state) {
+            state = state.map(function(tile) {
+                var t = new Tile(0, that);
+                t.deserialize(tile, that);
+                return t;
+            });
+            this.tiles = state;
+            _.invoke(this.tiles, 'update');
+        };
+
         that.update = function() {
 
             if (this.active_tiles().length === 0) {
@@ -367,9 +420,17 @@
                 _.invoke(this.tiles, 'update');
             }
 
+            if (this.iterations >= 5) {
+                window.alert('Oh no you lost!');
+                return;
+            }
+
             // happens!
             if (this.left_matches().length === 0) {
+                this.iterations++;
                 this.update();
+            } else {
+                this.iterations = 0;
             }
 
         };
@@ -386,6 +447,73 @@
 
         that.left_matches = function() {
             return _.flatten(_.invoke(this.active_tiles(), 'get_matches'));
+        };
+
+        this.test_boards = {
+            infinite: [
+                {x: 0, y: 0, v: 1, active: false},
+                {x: 1, y: 0, v: 2, active: true},
+                {x: 2, y: 0, v: 3, active: true},
+                {x: 3, y: 0, v: 1, active: false},
+                {x: 4, y: 0, v: 1, active: false},
+                {x: 5, y: 0, v: 1, active: false},
+                {x: 6, y: 0, v: 1, active: false},
+                {x: 7, y: 0, v: 1, active: false},
+                {x: 8, y: 0, v: 1, active: false},
+
+                {x: 0, y: 1, v: 1, active: false},
+                {x: 1, y: 1, v: 2, active: false},
+                {x: 2, y: 1, v: 3, active: false},
+                {x: 3, y: 1, v: 1, active: false},
+                {x: 4, y: 1, v: 1, active: false},
+                {x: 5, y: 1, v: 1, active: false},
+                {x: 6, y: 1, v: 1, active: false},
+                {x: 7, y: 1, v: 4, active: true},
+                {x: 8, y: 1, v: 4, active: false},
+
+                {x: 0, y: 2, v: 1, active: false},
+                {x: 1, y: 2, v: 2, active: false},
+                {x: 2, y: 2, v: 3, active: false},
+                {x: 3, y: 2, v: 1, active: true},
+                {x: 4, y: 2, v: 1, active: false},
+                {x: 5, y: 2, v: 1, active: false},
+                {x: 6, y: 2, v: 1, active: false},
+                {x: 7, y: 2, v: 1, active: false},
+                {x: 8, y: 2, v: 4, active: false},
+
+                {x: 0, y: 3, v: 1, active: false},
+                {x: 1, y: 3, v: 2, active: false},
+                {x: 2, y: 3, v: 3, active: false},
+                {x: 3, y: 3, v: 4, active: true},
+                {x: 4, y: 3, v: 1, active: false},
+                {x: 5, y: 3, v: 1, active: false},
+                {x: 6, y: 3, v: 1, active: false},
+                {x: 7, y: 3, v: 1, active: false},
+                {x: 8, y: 3, v: 4, active: false},
+
+                {x: 0, y: 4, v: 1, active: false},
+                {x: 1, y: 4, v: 2, active: false},
+                {x: 2, y: 4, v: 3, active: false},
+                {x: 3, y: 4, v: 1, active: true},
+                {x: 4, y: 4, v: 1, active: false},
+                {x: 5, y: 4, v: 1, active: false},
+                {x: 6, y: 4, v: 1, active: false},
+                {x: 7, y: 4, v: 1, active: false},
+                {x: 8, y: 4, v: 4, active: false},
+
+                {x: 0, y: 5, v: 1, active: false},
+                {x: 1, y: 5, v: 2, active: false},
+                {x: 2, y: 5, v: 5, active: true},
+                {x: 3, y: 5, v: 1, active: false},
+                {x: 4, y: 5, v: 5, active: true},
+                {x: 5, y: 5, v: 1, active: false},
+                {x: 6, y: 5, v: 1, active: false},
+                {x: 7, y: 5, v: 7, active: true},
+                {x: 8, y: 5, v: 1, active: true},
+
+                {x: 0, y: 6, v: 8, active: true},
+                {x: 1, y: 6, v: 1, active: true},
+            ]
         };
 
         that.init();
@@ -451,6 +579,11 @@
         restartGame: function() {
             this.setState(this.getInitialState());
         },
+        stepBack: function() {
+            var that = this;
+            that.state.board.step_back();
+            this.setState({board: that.state.board});
+        },
         render: function() {
             var that = this;
             // I see why JSX is recommended
@@ -459,7 +592,8 @@
                     React.createElement('div', {className: 'buttons'},
                         [React.createElement('div', {className: 'score', key: 'score'},
                             React.createElement('div', {className: 'small'}, 'steps'), that.state.board.steps),
-                         React.createElement('div', {className: 'new', key: 'new', onClick: that.restartGame}, 'New Game')
+                         React.createElement('div', {className: 'new', key: 'new', onClick: that.restartGame}, 'New Game'),
+                         React.createElement('div', {className: 'new', key: 'back', onClick: that.stepBack}, 'Back')
                          ])),
                 React.createElement('div', {className: 'board', key: 'board'}, new ReactBoard({board: that.state.board, game: that}))
             ]);
