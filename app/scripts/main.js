@@ -513,6 +513,61 @@
 
                 {x: 0, y: 6, v: 8, active: true},
                 {x: 1, y: 6, v: 1, active: true},
+            ],
+            threes: [
+                {x: 0, y: 0, v: 1, active: false},
+                {x: 1, y: 0, v: 2, active: false},
+                {x: 2, y: 0, v: 3, active: true},
+                {x: 3, y: 0, v: 4, active: false},
+                {x: 4, y: 0, v: 5, active: false},
+                {x: 5, y: 0, v: 6, active: false},
+                {x: 6, y: 0, v: 7, active: false},
+                {x: 7, y: 0, v: 8, active: false},
+                {x: 8, y: 0, v: 9, active: false},
+
+                {x: 0, y: 1, v: 1, active: false},
+                {x: 1, y: 1, v: 3, active: false},
+                {x: 2, y: 1, v: 5, active: false},
+                {x: 3, y: 1, v: 1, active: false},
+                {x: 4, y: 1, v: 7, active: false},
+                {x: 5, y: 1, v: 1, active: true},
+                {x: 6, y: 1, v: 3, active: true},
+                {x: 7, y: 1, v: 5, active: false},
+                {x: 8, y: 1, v: 1, active: false},
+
+                {x: 0, y: 2, v: 6, active: true},
+                {x: 1, y: 2, v: 1, active: false},
+                {x: 2, y: 2, v: 7, active: false},
+                {x: 3, y: 2, v: 1, active: false},
+                {x: 4, y: 2, v: 3, active: false},
+                {x: 5, y: 2, v: 5, active: true},
+                {x: 6, y: 2, v: 1, active: false},
+                {x: 7, y: 2, v: 7, active: false},
+                {x: 8, y: 2, v: 1, active: false},
+
+                {x: 0, y: 3, v: 5, active: false},
+                {x: 1, y: 3, v: 1, active: false},
+                {x: 2, y: 3, v: 3, active: false},
+                {x: 3, y: 3, v: 5, active: false},
+                {x: 4, y: 3, v: 6, active: false},
+                {x: 5, y: 3, v: 1, active: true},
+                {x: 6, y: 3, v: 5, active: true},
+                {x: 7, y: 3, v: 1, active: true},
+                {x: 8, y: 3, v: 6, active: true},
+
+                {x: 0, y: 4, v: 1, active: true},
+                {x: 1, y: 4, v: 8, active: false},
+                {x: 2, y: 4, v: 3, active: true},
+                {x: 3, y: 4, v: 1, active: true},
+                {x: 4, y: 4, v: 3, active: true},
+                {x: 5, y: 4, v: 6, active: true},
+                {x: 6, y: 4, v: 5, active: true},
+                {x: 7, y: 4, v: 1, active: true},
+                {x: 8, y: 4, v: 5, active: true},
+
+                {x: 0, y: 5, v: 1, active: true},
+                {x: 1, y: 5, v: 6, active: true},
+                {x: 2, y: 5, v: 1, active: true}
             ]
         };
 
@@ -633,7 +688,7 @@
     var ReactRow = React.createFactory(React.createClass({
         displayName: 'Row',
         shouldComponentUpdate: function() {
-            return this.props.row.active;
+            return true;
         },
         render: function() {
             var that = this;
