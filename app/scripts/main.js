@@ -645,12 +645,12 @@
             return React.createElement('div', {}, [
                 React.createElement('div', {className: 'header', key: 'header'},
                     React.createElement('div', {className: 'buttons'},
-                        [React.createElement('div', {className: 'score', key: 'score'},
-                            React.createElement('div', {className: 'small'}, 'steps'), that.state.board.steps),
-                         React.createElement('div', {className: 'new', key: 'new', onClick: that.restartGame}, 'New Game'),
-                         React.createElement('div', {className: 'new', key: 'back', onClick: that.stepBack}, 'Back')
+                        [React.createElement('div', {className: 'button button__score', key: 'score'},
+                            React.createElement('div', {className: 'button__score__small'}, 'steps'), that.state.board.steps),
+                         React.createElement('div', {className: 'button button__new', key: 'new', onClick: that.restartGame}, 'New Game')
                          ])),
-                React.createElement('div', {className: 'board', key: 'board'}, new ReactBoard({board: that.state.board, game: that}))
+                React.createElement('div', {className: 'board', key: 'board'}, new ReactBoard({board: that.state.board, game: that})),
+                React.createElement('div', {className: 'button button__back', key: 'back', onClick: that.stepBack}, 'Back')
             ]);
         }
     }));
@@ -676,10 +676,13 @@
                     hidden_rows.push(React.createElement('div', {className: 'tile_row__button', key: 'button'}, splitted.length));
                 }
 
+                var hidden = hidden_rows.length > 0 && !splitted[0].active;
+
                 return React.createElement('div', {
-                    className: 'tile_row__lines',
+                    className: hidden ? 'tile_row_container' : '',
                     key: i
                 }, hidden_rows);
+
             });
             return React.createElement('div', {className: 'table'}, result);
         }

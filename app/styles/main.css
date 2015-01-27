@@ -59,7 +59,7 @@ body {
   height: 10px;
 }
 
-.tile_row__lines {
+.tile_row_container {
   position: relative;
   margin-bottom: 4px;
   float: left;
@@ -165,22 +165,7 @@ body {
   float: left;
 }
 
-.score {
-  width: 100px;
-  position: relative;
-  background: #bbada0;
-  padding: 15px 5px;
-  font-size: 25px;
-  height: 25px;
-  line-height: 15px;
-  font-weight: bold;
-  border-radius: 3px;
-  color: white;
-  margin-top: 8px;
-  text-align: center;
-}
-
-.new {
+.button {
   width: 100px;
   position: relative;
   background: #8f7a66;
@@ -191,22 +176,34 @@ body {
   line-height: 25px;
   border-radius: 3px;
   color: white;
-  margin-top: 8px;
-  text-align: center;
   cursor: pointer;
+  text-align: center;
 }
 
-.new:hover {
-
+.button__score {
+  background: #bbada0;
+  margin-top: 8px;
+  padding: 15px 5px;
+  font-size: 25px;
+  line-height: 15px;
 }
 
-.score .small {
+.button__new {
+  margin-top: 8px;
+}
+
+.button__back {
+  float: right;
+}
+
+
+.button__score__small {
   font-size: 14px;
   line-height: 0;
   color: #eee4da;
 }
 
-.score span {
+.button__score span {
   line-height: 40px;
 }
 
@@ -217,9 +214,9 @@ body {
   }
 
   .tile {
-    margin: 2px;
-    height: 30px;
-    width: 30px;
+    margin: 3px;
+    height: 28px;
+    width: 28px;
     line-height: 30px;
     font-size: 16px;
   }
@@ -232,7 +229,7 @@ body {
     margin-left: -20px;
   }
 
-  .tile_row__lines {
+  .tile_row_container {
     margin-bottom: 2px;
   }
 
@@ -263,16 +260,16 @@ body {
     height: 18px;
     font-size: 12px;
     line-height: 18px;
-    margin-top: -8px;
+    margin-top: -8px;;
     margin-left: -19px;
   }
 
-  .tile_row__lines {
+  .tile_row_container {
     margin-bottom: 2px;
   }
 
   .tile {
-    margin: 2px;
+    margin: 2.4px;
     height: 18px;
     width: 18px;
     line-height: 18px;
