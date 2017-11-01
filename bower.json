@@ -1,8 +1,0 @@
-{
-  "name": "caro-game",
-  "private": true,
-  "dependencies": {
-    "underscore": "~1.7.0",
-    "react": "~0.12.2"
-  }
-}
