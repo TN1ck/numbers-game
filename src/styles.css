@@ -200,10 +200,11 @@ body {
 
 }
 
-.score .small {
+.small {
   font-size: 14px;
   line-height: 0;
   color: #eee4da;
+  margin-bottom: 12px;
 }
 
 .score span {
