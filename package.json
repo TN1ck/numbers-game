@@ -1,34 +1,37 @@
 {
-  "name": "caro-game",
-  "devDependencies": {
-    "apache-server-configs": "^2.7.1",
-    "grunt": "^0.4.5",
-    "grunt-autoprefixer": "^1.0.0",
-    "grunt-concurrent": "^0.5.0",
-    "grunt-contrib-clean": "^0.6.0",
-    "grunt-contrib-concat": "^0.5.0",
-    "grunt-contrib-connect": "^0.8.0",
-    "grunt-contrib-copy": "^0.5.0",
-    "grunt-contrib-cssmin": "^0.10.0",
-    "grunt-contrib-htmlmin": "^0.3.0",
-    "grunt-contrib-imagemin": "^0.8.0",
-    "grunt-contrib-jshint": "^0.10.0",
-    "grunt-contrib-uglify": "^0.5.1",
-    "grunt-contrib-watch": "^0.6.1",
-    "grunt-mocha": "^0.4.10",
-    "grunt-newer": "^0.7.0",
-    "grunt-rev": "^0.1.0",
-    "grunt-svgmin": "^0.4.0",
-    "grunt-usemin": "^2.3.0",
-    "grunt-wiredep": "^1.7.0",
-    "jshint-stylish": "^0.4.0",
-    "load-grunt-tasks": "^0.4.0",
-    "time-grunt": "^0.4.0"
+  "author": "Tom Nick",
+  "name": "numbers-game",
+  "version": "1.0.0",
+  "description": "Numbers game: The old classroom game.",
+  "scripts": {
+    "start": "node server.js",
+    "build": "export NODE_ENV=production && webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "engines": {
-    "node": ">=0.10.0"
+  "keywords": [
+    "game",
+    "numbers game",
+    "zahlenspiel",
+    "take ten"
+  ],
+  "devDependencies": {
+    "@types/keymaster": "1.6.28",
+    "@types/lodash": "4.14.74",
+    "@types/react": "16.0.5",
+    "@types/react-dom": "15.5.4",
+    "file-loader": "1.1.5",
+    "html-webpack-plugin": "^2.30.1",
+    "raw-loader": "0.5.1",
+    "awesome-typescript-loader": "3.2.3",
+    "css-loader": "0.28.7",
+    "style-loader": "0.18.2",
+    "typescript": "2.5.2",
+    "webpack": "3.5.6",
+    "webpack-dev-server": "2.8.0"
   },
   "dependencies": {
-    "underscore": "~1.7.0"
+    "lodash": "4.17.4",
+    "react": "15.6.1",
+    "react-dom": "15.6.1"
   }
 }
