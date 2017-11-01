@@ -2,12 +2,12 @@ import * as React from 'react';
 import * as ReactDom from 'react-dom';
 import * as _ from 'lodash';
 
-const numbers_game: {
+const numbersGame: {
   board: Board;
   game: Game;
 } =
-  (window as any).numbers_game || {};
-(window as any).numbers_game = numbers_game;
+  (window as any).numbersGame || {};
+(window as any).numbersGame = numbersGame;
 
 const base = 9;
 
@@ -50,12 +50,12 @@ function splitAt<T>(list: T[], fun: (d: T) => boolean) {
 function partitionBy<T>(list: T[], fun: (d: T) => any) {
   var partitioned: T[][] = [];
   var current: T[] = [];
-  var last_elem_result: any;
+  var lastElemResult: any;
 
   list.forEach((d, i) => {
     var result = fun(d);
 
-    if (result === last_elem_result || i === 0) {
+    if (result === lastElemResult || i === 0) {
       current.push(d);
     } else {
       partitioned.push(current);
@@ -66,7 +66,7 @@ function partitionBy<T>(list: T[], fun: (d: T) => any) {
       partitioned.push(current);
     }
 
-    last_elem_result = result;
+    lastElemResult = result;
   });
 
   return partitioned;
@@ -112,7 +112,7 @@ class Tile {
     this.active = true;
     this.matchable = false;
     this.selected = false;
-    this.listener = this.get_callback();
+    this.listener = this.getCallback();
 
     board.tiles.push(this);
   }
@@ -121,7 +121,7 @@ class Tile {
     return toXY(this.board.tiles.length);
   }
 
-  to_index() {
+  toIndex() {
     return toIndex(this.x, this.y);
   }
 
@@ -145,54 +145,54 @@ class Tile {
       left.neighbours.right = false;
     }
 
-    this.get_neighbours().forEach(function(t: any) {
+    this.getNeighbours().forEach(function(t: any) {
       t.matchable = false;
     });
   }
 
   select() {
     this.selected = true;
-    this.get_matches().forEach(function(t) {
+    this.getMatches().forEach(function(t) {
       t.matchable = true;
     });
   }
 
   deselect() {
     this.selected = false;
-    this.get_matches().forEach(function(t) {
+    this.getMatches().forEach(function(t) {
       t.matchable = false;
     });
   }
 
-  check_match(tile) {
+  checkMatch(tile) {
     return tile.v + this.v === base + 1 || tile.v === this.v;
   }
 
-  get_neighbour(neighbour: any, inc: any) {
-    var n = this.to_index() + inc;
+  getNeighbour(neighbour: any, inc: any) {
+    var n = this.toIndex() + inc;
 
     if (this.neighbours[neighbour]) {
-      n = this.neighbours[neighbour].to_index();
+      n = this.neighbours[neighbour].toIndex();
     }
 
-    var possible_tile: boolean | Tile = true;
+    var possibleTile: boolean | Tile = true;
 
-    while (possible_tile && !(possible_tile as Tile).active) {
-      possible_tile = this.board.tiles[n];
+    while (possibleTile && !(possibleTile as Tile).active) {
+      possibleTile = this.board.tiles[n];
       n += inc;
     }
 
-    return possible_tile ? possible_tile : false;
+    return possibleTile ? possibleTile : false;
   }
 
-  set_neighbours() {
-    this.neighbours.above = this.get_neighbour('above', -base);
-    this.neighbours.below = this.get_neighbour('below', base);
-    this.neighbours.right = this.get_neighbour('right', 1);
-    this.neighbours.left = this.get_neighbour('left', -1);
+  setNeighbours() {
+    this.neighbours.above = this.getNeighbour('above', -base);
+    this.neighbours.below = this.getNeighbour('below', base);
+    this.neighbours.right = this.getNeighbour('right', 1);
+    this.neighbours.left = this.getNeighbour('left', -1);
   }
 
-  get_neighbours(): Tile[] {
+  getNeighbours(): Tile[] {
     var correct = [
       this.neighbours.above,
       this.neighbours.below,
@@ -205,15 +205,15 @@ class Tile {
     });
   }
 
-  get_matches() {
+  getMatches() {
     if (!this.active) {
       return [];
     }
 
     var that = this;
 
-    var matches = that.get_neighbours().filter(function(d) {
-      return that.check_match(d);
+    var matches = that.getNeighbours().filter(function(d) {
+      return that.checkMatch(d);
     });
 
     // remove duplicates
@@ -230,7 +230,7 @@ class Tile {
   }
 
   update() {
-    this.set_neighbours();
+    this.setNeighbours();
 
     if (!this.active) {
       this.className = this.classes.inactive;
@@ -247,10 +247,10 @@ class Tile {
       return;
     }
 
-    var number_of_matches = this.get_matches().length;
+    var numberOfMatches = this.getMatches().length;
 
-    if (number_of_matches > 0) {
-      this.className = this.classes.hint[number_of_matches - 1];
+    if (numberOfMatches > 0) {
+      this.className = this.classes.hint[numberOfMatches - 1];
       return;
     }
 
@@ -268,61 +268,61 @@ class Tile {
     };
   }
 
-  deserialize(tile_dict, board) {
-    Object.assign(this, tile_dict);
+  deserialize(tileDict, board) {
+    Object.assign(this, tileDict);
     this.neighbours.above = false;
     this.neighbours.below = false;
     this.neighbours.left = false;
     this.neighbours.right = false;
     this.board = board;
-    this.listener = this.get_callback();
+    this.listener = this.getCallback();
   }
 
-  get_callback() {
+  getCallback() {
     var tile = this;
 
     var callback = function() {
-      var other_tile = tile.board.currently_selected;
+      var otherTile = tile.board.currentlySelected;
 
       if (tile.matchable) {
         tile.board.save();
 
         tile.board.steps++;
 
-        var matched_tiles = [tile, other_tile];
-        matched_tiles.forEach(t => t.deactivate());
+        var matchedTiles = [tile, otherTile];
+        matchedTiles.forEach(t => t.deactivate());
 
         var affected_tiles = tile
-          .get_neighbours()
-          .concat(other_tile.get_neighbours());
-        affected_tiles.concat(matched_tiles).forEach(t => t.update());
+          .getNeighbours()
+          .concat(otherTile.getNeighbours());
+        affected_tiles.concat(matchedTiles).forEach(t => t.update());
 
         tile.board.update();
 
         return;
       }
 
-      var old_selection = [];
+      var oldSelection = [];
 
-      if (other_tile) {
-        other_tile.deselect();
-        old_selection = other_tile.get_neighbours().concat(other_tile);
+      if (otherTile) {
+        otherTile.deselect();
+        oldSelection = otherTile.getNeighbours().concat(otherTile);
       }
 
       tile.select();
       tile
-        .get_neighbours()
+        .getNeighbours()
         .concat([tile])
-        .concat(old_selection)
+        .concat(oldSelection)
         .forEach(t => t.update());
 
-      tile.board.currently_selected = tile;
+      tile.board.currentlySelected = tile;
       tile.board.update();
     };
 
     var flag = false;
 
-    var callback_timeout = function(e) {
+    var callbackTimeout = function(e) {
       if (!flag) {
         flag = true;
         setTimeout(function() {
@@ -333,28 +333,28 @@ class Tile {
       e.preventDefault();
     };
 
-    return callback_timeout;
+    return callbackTimeout;
   }
 }
 
 class Board {
   tiles: Tile[] = [];
   steps = 0;
-  board_history: any[] = [];
+  boardHistory: any[] = [];
   iterations = 0;
   base: number;
 
   constructor(base: number) {
-    numbers_game.board = this;
+    numbersGame.board = this;
     this.base = base;
     this.init();
   }
 
-  get_tile(x: number, y: number) {
+  getTile(x: number, y: number) {
     return this.tiles[toIndex(x, y)];
   }
 
-  get_rows() {
+  getRows() {
     return splitAt(this.tiles, d => {
       return d.x === 0;
     }).map(tiles => {
@@ -378,22 +378,22 @@ class Board {
   }
 
   save() {
-    this.board_history.push(this.tiles.map(t => t.serialize));
-    if (this.board_history.length > 100) {
-      this.board_history.shift();
+    this.boardHistory.push(this.tiles.map(t => t.serialize));
+    if (this.boardHistory.length > 100) {
+      this.boardHistory.shift();
     }
   }
 
-  step_back() {
-    if (this.board_history.length === 0) {
+  stepBack() {
+    if (this.boardHistory.length === 0) {
       return;
     }
-    var last_state = this.board_history.pop();
-    this.set_state(last_state);
+    var lastState = this.boardHistory.pop();
+    this.setState(lastState);
     this.steps--;
   }
 
-  set_state(state) {
+  setState(state) {
     state = state.map(tile => {
       var t = new Tile(0, this);
       t.deserialize(tile, this);
@@ -404,15 +404,15 @@ class Board {
   }
 
   update() {
-    if (this.active_tiles().length === 0) {
+    if (this.activeTiles().length === 0) {
       window.alert('You won the game! Congrats!');
       return;
     }
 
-    if (this.left_matches().length === 0) {
-      var active_tiles = this.active_tiles();
+    if (this.leftMatches().length === 0) {
+      var activeTiles = this.activeTiles();
 
-      _.each(active_tiles, t => {
+      _.each(activeTiles, t => {
         new Tile(t.v, this);
       });
 
@@ -425,7 +425,7 @@ class Board {
     }
 
     // happens!
-    if (this.left_matches().length === 0) {
+    if (this.leftMatches().length === 0) {
       this.iterations++;
       this.update();
     } else {
@@ -433,21 +433,21 @@ class Board {
     }
   }
 
-  active_tiles() {
+  activeTiles() {
     return this.tiles.filter(t => t.active);
   }
 
-  inactive_tiles() {
+  inactiveTiles() {
     return this.tiles.filter(d => {
       return !d.active;
     });
   }
 
-  left_matches() {
-    return _.flatten(this.active_tiles().map(t => t.get_matches()));
+  leftMatches() {
+    return _.flatten(this.activeTiles().map(t => t.getMatches()));
   }
 
-  test_boards = {
+  testBoards = {
     infinite: [
       {x: 0, y: 0, v: 1, active: false},
       {x: 1, y: 0, v: 2, active: true},
@@ -517,21 +517,21 @@ class Board {
 
 class Game {
   root: HTMLElement;
-  pilot_running: boolean;
+  pilotRunning: boolean;
   constructor(root: HTMLElement) {
     this.root = root;
   }
 
-  toggle_pilot() {
-    this.pilot_running = !this.pilot_running;
+  togglePilot() {
+    this.pilotRunning = !this.pilotRunning;
 
     const run = () => {
-      var left_tiles: Tile[] = [];
+      var leftTiles: Tile[] = [];
 
       // hints
-      _.each(numbers_game.board.active_tiles(), tile => {
-        var matches = tile.get_matches();
-        left_tiles = left_tiles.concat(matches);
+      _.each(numbersGame.board.activeTiles(), tile => {
+        var matches = tile.getMatches();
+        leftTiles = leftTiles.concat(matches);
       });
 
       var tiles: any[] = [];
@@ -555,7 +555,7 @@ class Game {
         var elems = document.getElementsByClassName('tile__good_match');
         var el: any = elems[_.random(elems.length - 1)];
         el.click();
-        if (this.pilot_running) {
+        if (this.pilotRunning) {
           run();
         }
       }, 100);
@@ -588,7 +588,7 @@ class ReactGame extends React.Component<
     this.setState({board: new Board(base)});
   }
   stepBack() {
-    this.state.board.step_back();
+    this.state.board.stepBack();
     this.setState({board: this.state.board});
   }
   render() {
@@ -630,16 +630,16 @@ const ReactBoard: React.StatelessComponent<{board: any; game: any}> = ({
   game,
 }) => {
   // some magic to hide rows
-  var rows: any[] = board.get_rows();
-  var splitted_rows = partitionBy(rows, _.property('active'));
+  var rows: any[] = board.getRows();
+  var splittedRows = partitionBy(rows, _.property('active'));
 
-  var result = splitted_rows.map(function(splitted, i) {
-    var hidden_rows = splitted.map(function(row, j) {
+  var result = splittedRows.map(function(splitted, i) {
+    var hiddenRows = splitted.map(function(row, j) {
       return <ReactRow row={row} key={j} game={game} />;
     });
 
     if (splitted.length > 1 && !splitted[0].active) {
-      hidden_rows.push(
+      hiddenRows.push(
         <div className="tile_row__button" key="button">
           {splitted.length}
         </div>,
@@ -652,7 +652,7 @@ const ReactBoard: React.StatelessComponent<{board: any; game: any}> = ({
         className: 'tile_row__lines',
         key: i,
       },
-      hidden_rows,
+      hiddenRows,
     );
   });
   return React.createElement('div', {className: 'table'}, result);
@@ -683,7 +683,7 @@ const ReactTile: React.StatelessComponent<any> = props => {
     props.game.setState(props.tile.board);
   };
 
-  callback = props.tile.get_matches().length > 0 ? callback : null;
+  callback = props.tile.getMatches().length > 0 ? callback : null;
 
   var settings: any = {
     className: ['tile', props.tile.className].join(' '),
@@ -704,4 +704,4 @@ const ReactTile: React.StatelessComponent<any> = props => {
 var game = new Game(document.getElementById('react') as HTMLElement);
 game.run();
 
-numbers_game.game = game;
+numbersGame.game = game;
