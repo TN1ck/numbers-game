@@ -8,7 +8,7 @@ const numbers_game: {
 } = (window as any).numbers_game || {};
 (window as any).numbers_game = numbers_game;
 
-var base = 9;
+const base = 9;
 
 function to_xy(n: number) {
     return {
@@ -295,10 +295,10 @@ class Tile {
                 tile.board.steps++;
                 
                 var matched_tiles = [tile, other_tile];
-                _.invoke(matched_tiles, 'deactivate');
+                matched_tiles.forEach(t => t.deactivate());
                 
                 var affected_tiles = tile.get_neighbours().concat(other_tile.get_neighbours());
-                _.invoke(affected_tiles.concat(matched_tiles), 'update');
+                affected_tiles.concat(matched_tiles).forEach(t => t.update());
     
                 tile.board.update();
     
@@ -313,7 +313,7 @@ class Tile {
             }
     
             tile.select();
-            _.invoke(tile.get_neighbours().concat([tile]).concat(old_selection), 'update');
+            tile.get_neighbours().concat([tile]).concat(old_selection).forEach(t => t.update());
             
             tile.board.currently_selected = tile;
             tile.board.update();
@@ -340,7 +340,7 @@ class Tile {
 class Board {
     tiles: Tile[] = [];
     steps = 0;
-    board_history = [];
+    board_history: any[] = [];
     iterations = 0;
     base: number;
     
@@ -374,12 +374,11 @@ class Board {
                 });
             });
         });
-
-        _.invoke(this.tiles, 'update');
+        this.tiles.forEach(t => t.update());
     };
 
     save() {
-        this.board_history.push(_.invoke(this.tiles, 'serialize'));
+        this.board_history.push(this.tiles.map(t => t.serialize));
         if (this.board_history.length > 100) {
             this.board_history.shift();
         }
@@ -401,7 +400,7 @@ class Board {
             return t;
         });
         this.tiles = state;
-        _.invoke(this.tiles, 'update');
+        this.tiles.forEach(t => t.update());
     };
 
     update() {
@@ -419,7 +418,7 @@ class Board {
                 new Tile(t.v, this);
             });
 
-            _.invoke(this.tiles, 'update');
+            this.tiles.forEach(t => t.update());
         }
 
         if (this.iterations >= 5) {
@@ -448,7 +447,7 @@ class Board {
     };
 
     left_matches() {
-        return _.flatten(_.invoke(this.active_tiles(), 'get_matches'));
+        return _.flatten(this.active_tiles().map(t => t.get_matches()));
     };
 
     test_boards = {
