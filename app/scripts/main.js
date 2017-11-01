@@ -4,8 +4,8 @@
 
 (function() {
 
-    var caro_game = window.caro_game || {};
-    window.caro_game = caro_game;
+    var numbers_game = window.numbers_game || {};
+    window.numbers_game = numbers_game;
 
     var base = 9;
 
@@ -343,7 +343,7 @@
         this.tiles = [];
         this.steps = 0;
 
-        caro_game.board = this;
+        numbers_game.board = this;
 
         this.board_history = [];
         this.iterations = 0;
@@ -530,7 +530,7 @@
                 var left_tiles = [];
 
                 // hints
-                _.each(caro_game.board.active_tiles(), function(tile) {
+                _.each(numbers_game.board.active_tiles(), function(tile) {
                     var matches = tile.get_matches();
                     left_tiles = left_tiles.concat(matches);
                 });
@@ -675,6 +675,6 @@
     var game = new Game(document.getElementById('react'));
     game.run();
 
-    caro_game.game = game;
+    numbers_game.game = game;
     
 })();
