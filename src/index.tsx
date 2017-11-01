@@ -602,7 +602,7 @@ class ReactGame extends React.Component<
             'div',
             {className: 'score', key: 'score'},
             React.createElement('div', {className: 'small'}, 'steps'),
-            this.state.board.steps,
+            <div>{this.state.board.steps}</div>,
           ),
           React.createElement(
             'div',
