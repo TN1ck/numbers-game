@@ -354,13 +354,16 @@ class Board {
     return this.tiles[toIndex(x, y)];
   }
 
-  getRows() {
+  getRows(): Array<{
+    tiles: Tile[];
+    active: boolean;
+  }> {
     return splitAt(this.tiles, d => {
       return d.x === 0;
     }).map(tiles => {
       return {
         tiles: tiles,
-        active: _.some(tiles, _.property('active')),
+        active: tiles.some(t => t.active),
       };
     });
   }
@@ -592,36 +595,27 @@ class ReactGame extends React.Component<
     this.setState({board: this.state.board});
   }
   render() {
-    // I see why JSX is recommended
-    return React.createElement('div', {}, [
-      React.createElement(
-        'div',
-        {className: 'header', key: 'header'},
-        React.createElement('div', {className: 'buttons'}, [
-          React.createElement(
-            'div',
-            {className: 'score', key: 'score'},
-            React.createElement('div', {className: 'small'}, 'steps'),
-            <div>{this.state.board.steps}</div>,
-          ),
-          React.createElement(
-            'div',
-            {className: 'new', key: 'new', onClick: this.restartGame},
-            'New Game',
-          ),
-          React.createElement(
-            'div',
-            {className: 'new', key: 'back', onClick: this.stepBack},
-            'Back',
-          ),
-        ]),
-      ),
-      React.createElement(
-        'div',
-        {className: 'board', key: 'board'},
-        <ReactBoard board={this.state.board} game={this} />,
-      ),
-    ]);
+    return (
+      <div>
+        <div className="header">
+          <div className="buttons">
+            <div className="score">
+              <div className="small">{'steps'}</div>
+              <div>{this.state.board.steps}</div>
+            </div>
+            <div className="new" onClick={this.restartGame}>
+              {'New Game'}
+            </div>
+            <div className="new" onClick={this.stepBack}>
+              {'Back'}
+            </div>
+          </div>
+        </div>
+        <div className="board">
+          <ReactBoard board={this.state.board} game={this} />
+        </div>
+      </div>
+    );
   }
 }
 
@@ -646,16 +640,15 @@ const ReactBoard: React.StatelessComponent<{board: any; game: any}> = ({
       );
     }
 
-    return React.createElement(
-      'div',
-      {
-        className: 'tile_row__lines',
-        key: i,
-      },
-      hiddenRows,
+    return (
+      <div className="tile_row__lines" key={i}>
+        {hiddenRows}
+      </div>
     );
   });
-  return React.createElement('div', {className: 'table'}, result);
+  return (
+    <div className="table">{result}</div>
+  );
 };
 
 class ReactRow extends React.Component<any> {
@@ -666,13 +659,10 @@ class ReactRow extends React.Component<any> {
     var tiles = this.props.row.tiles.map((tile, i) => {
       return <ReactTile tile={tile} key={i} game={this.props.game} />;
     });
-    return React.createElement(
-      'div',
-      {
-        className:
-          'tile_row' + (this.props.row.active ? '' : ' tile_row__hidden'),
-      },
-      tiles,
+    return (
+      <div className={'tile_row' + (this.props.row.active ? '' : ' tile_row__hidden')}>
+        {tiles}
+      </div>
     );
   }
 }
@@ -694,10 +684,14 @@ const ReactTile: React.StatelessComponent<any> = props => {
     settings.onClick = callback;
   }
 
-  return React.createElement(
-    'div',
-    {className: 'tile_cell'},
-    React.createElement('div', settings, props.tile.v),
+  return (
+    <div className="tile_cell">
+      <div
+        className={['tile', props.tile.className].join(' ')}
+        onTouchStart={callback || null}
+        onClick={callback || null}
+      >{props.tile.v}</div>
+    </div>
   );
 };
 
