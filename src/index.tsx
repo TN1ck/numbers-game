@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
-import * as _ from 'lodash';
+import {random, range, flatten} from 'lodash';
 
 const numbersGame: {
   board: Board;
@@ -8,6 +8,10 @@ const numbersGame: {
 } =
   (window as any).numbersGame || {};
 (window as any).numbersGame = numbersGame;
+
+//
+// Utility functions
+//
 
 const base = 9;
 
@@ -70,6 +74,15 @@ function partitionBy<T>(list: T[], fun: (d: T) => any) {
   });
 
   return partitioned;
+}
+
+//
+// Classes & Interfaces
+//
+
+interface TileRow {
+  tiles: Tile[];
+  active: boolean;
 }
 
 class Tile {
@@ -354,10 +367,7 @@ class Board {
     return this.tiles[toIndex(x, y)];
   }
 
-  getRows(): Array<{
-    tiles: Tile[];
-    active: boolean;
-  }> {
+  getRows(): TileRow[] {
     return splitAt(this.tiles, d => {
       return d.x === 0;
     }).map(tiles => {
@@ -369,10 +379,10 @@ class Board {
   }
 
   init() {
-    _.each([0, 1], row => {
-      _.each(_.range(base), col => {
+    [0, 1].forEach(row => {
+      range(base).forEach(col => {
         var value = '' + (row * 10 + col + 1);
-        _.each(_.range(value.length), i => {
+        range(value.length).forEach(i => {
           new Tile(Number(value[i]), this);
         });
       });
@@ -415,7 +425,7 @@ class Board {
     if (this.leftMatches().length === 0) {
       var activeTiles = this.activeTiles();
 
-      _.each(activeTiles, t => {
+      activeTiles.forEach(t => {
         new Tile(t.v, this);
       });
 
@@ -447,7 +457,7 @@ class Board {
   }
 
   leftMatches() {
-    return _.flatten(this.activeTiles().map(t => t.getMatches()));
+    return flatten(this.activeTiles().map(t => t.getMatches()));
   }
 
   testBoards = {
@@ -532,23 +542,19 @@ class Game {
       var leftTiles: Tile[] = [];
 
       // hints
-      _.each(numbersGame.board.activeTiles(), tile => {
+      numbersGame.board.activeTiles().forEach(tile => {
         var matches = tile.getMatches();
         leftTiles = leftTiles.concat(matches);
       });
 
-      var tiles: any[] = [];
-      _.each(
-        ['tile__hint_1', 'tile__hint_2', 'tile__hint_3', 'tile__hint_4'],
-        function(tile_class) {
-          var selection = [].slice.call(
-            document.getElementsByClassName(tile_class),
-          );
+      var tiles: HTMLElement[] = [];
+      ['tile__hint_1', 'tile__hint_2', 'tile__hint_3', 'tile__hint_4'].forEach((tile_class) => {
+          var selection = (Array.from(document.getElementsByClassName(tile_class)) as HTMLElement[]);
           tiles = tiles.concat(selection);
         },
       );
 
-      var tile = tiles[_.random(0, tiles.length - 1)];
+      var tile = tiles[random(0, tiles.length - 1)];
 
       if (tile) {
         tile.click();
@@ -556,7 +562,7 @@ class Game {
 
       setTimeout(() => {
         var elems = document.getElementsByClassName('tile__good_match');
-        var el: any = elems[_.random(elems.length - 1)];
+        var el = (elems[random(elems.length - 1)] as HTMLElement);
         el.click();
         if (this.pilotRunning) {
           run();
@@ -575,7 +581,7 @@ class Game {
 class ReactGame extends React.Component<
   {},
   {
-    board: any;
+    board: Board;
   }
 > {
   displayName: 'Game';
@@ -619,13 +625,16 @@ class ReactGame extends React.Component<
   }
 }
 
-const ReactBoard: React.StatelessComponent<{board: any; game: any}> = ({
+const ReactBoard: React.StatelessComponent<{
+  board: Board;
+  game: ReactGame;
+}> = ({
   board,
   game,
 }) => {
   // some magic to hide rows
-  var rows: any[] = board.getRows();
-  var splittedRows = partitionBy(rows, _.property('active'));
+  var rows = board.getRows();
+  var splittedRows = partitionBy(rows, r => r.active);
 
   var result = splittedRows.map(function(splitted, i) {
     var hiddenRows = splitted.map(function(row, j) {
@@ -651,32 +660,42 @@ const ReactBoard: React.StatelessComponent<{board: any; game: any}> = ({
   );
 };
 
-class ReactRow extends React.Component<any> {
+class ReactRow extends React.Component<{
+  row: TileRow;
+  game: ReactGame;
+}> {
   shouldComponentUpdate(props: any) {
     return props.row.active;
   }
   render() {
-    var tiles = this.props.row.tiles.map((tile, i) => {
-      return <ReactTile tile={tile} key={i} game={this.props.game} />;
+    const {
+      row,
+      game,
+    } = this.props;
+    var tiles = row.tiles.map((tile, i) => {
+      return <ReactTile tile={tile} key={i} game={game} />;
     });
     return (
-      <div className={'tile_row' + (this.props.row.active ? '' : ' tile_row__hidden')}>
+      <div className={'tile_row' + (row.active ? '' : ' tile_row__hidden')}>
         {tiles}
       </div>
     );
   }
 }
 
-const ReactTile: React.StatelessComponent<any> = props => {
+const ReactTile: React.StatelessComponent<{
+  tile: Tile;
+  game: ReactGame;
+}> = ({tile, game}) => {
   var callback: any = function(e: any) {
-    props.tile.listener.bind(this)(e);
-    props.game.setState(props.tile.board);
+    tile.listener.bind(this)(e);
+    game.setState(tile.board);
   };
 
-  callback = props.tile.getMatches().length > 0 ? callback : null;
+  callback = tile.getMatches().length > 0 ? callback : null;
 
   var settings: any = {
-    className: ['tile', props.tile.className].join(' '),
+    className: ['tile', tile.className].join(' '),
   };
 
   if (callback) {
@@ -687,10 +706,10 @@ const ReactTile: React.StatelessComponent<any> = props => {
   return (
     <div className="tile_cell">
       <div
-        className={['tile', props.tile.className].join(' ')}
+        className={['tile', tile.className].join(' ')}
         onTouchStart={callback || null}
         onClick={callback || null}
-      >{props.tile.v}</div>
+      >{tile.v}</div>
     </div>
   );
 };
