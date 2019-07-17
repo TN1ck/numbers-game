@@ -98,6 +98,7 @@ body {
   width: 48px;
   text-align: center;
   font-size: 22px;
+  cursor: default;
 }
 
 .tile__selected {
