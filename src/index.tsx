@@ -163,19 +163,19 @@ class Tile implements SerializedTile {
   deactivate() {
     this.active = false;
 
-    var below = this.neighbours.below;
+    const below = this.neighbours.below;
     if (isTile(below)) {
       below.neighbours.above = false;
     }
-    var above = this.neighbours.above;
+    const above = this.neighbours.above;
     if (isTile(above)) {
       above.neighbours.below = false;
     }
-    var right = this.neighbours.right;
+    const right = this.neighbours.right;
     if (isTile(right)) {
       right.neighbours.left = false;
     }
-    var left = this.neighbours.left;
+    const left = this.neighbours.left;
     if (isTile(left)) {
       left.neighbours.right = false;
     }
@@ -187,14 +187,14 @@ class Tile implements SerializedTile {
 
   select() {
     this.selected = true;
-    this.getMatches().forEach(function(t) {
+    this.getMatches().forEach(t => {
       t.matchable = true;
     });
   }
 
   deselect() {
     this.selected = false;
-    this.getMatches().forEach(function(t) {
+    this.getMatches().forEach(t => {
       t.matchable = false;
     });
   }
@@ -244,15 +244,11 @@ class Tile implements SerializedTile {
       return [];
     }
 
-    var that = this;
-
-    var matches = that.getNeighbours().filter(function(d) {
-      return that.checkMatch(d);
-    });
+    const matches = this.getNeighbours().filter(d => this.checkMatch(d));
 
     // remove duplicates
-    return matches.filter(function(t, i) {
-      var duplicates = matches.filter(function(tt, j) {
+    return matches.filter((t, i) => {
+      const duplicates = matches.filter((tt, j) => {
         if (i <= j) {
           return false;
         } else {
@@ -281,7 +277,7 @@ class Tile implements SerializedTile {
       return;
     }
 
-    var numberOfMatches = this.getMatches().length;
+    const numberOfMatches = this.getMatches().length;
 
     if (numberOfMatches > 0) {
       this.className = Tile.classes.hint[numberOfMatches - 1];
@@ -406,7 +402,7 @@ class Board {
   init() {
     [0, 1].forEach(row => {
       range(BASE).forEach(col => {
-        var value = "" + (row * 10 + col + 1);
+        const value = "" + (row * 10 + col + 1);
         range(value.length).forEach(i => {
           new Tile(Number(value[i]), this);
         });
@@ -430,14 +426,14 @@ class Board {
     if (this.boardHistory.length === 0) {
       return;
     }
-    var lastState = this.boardHistory.pop();
+    const lastState = this.boardHistory.pop();
     this.setState(lastState);
     this.steps--;
   }
 
   setState(state) {
     state = state.map(tile => {
-      var t = new Tile(0, this);
+      const t = new Tile(0, this);
       t.hydrate(tile, this);
       return t;
     });
@@ -669,8 +665,8 @@ const ReactBoard: React.StatelessComponent<{
   const rows = board.getRows();
   const splittedRows = partitionBy(rows, r => r.active);
 
-  const result = splittedRows.map(function(splitted, i) {
-    const hiddenRows = splitted.map(function(row, j) {
+  const result = splittedRows.map((splitted, i) => {
+    const hiddenRows = splitted.map((row, j) => {
       return <ReactRow row={row} key={j} setBoard={setBoard} />;
     });
 
