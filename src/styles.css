@@ -42,7 +42,8 @@ body {
 .board .table {
   float: left;
   background-color: #bbada0;
-  padding: 2px;
+  padding: 3px;
+  padding-bottom: 0;
   border-radius: 5px;
   margin-bottom: 20px;
   margin-top: 20px;
@@ -218,6 +219,10 @@ body {
     width: 400px;
   }
 
+  .board .table {
+    padding: 2px;
+  }
+
   .tile {
     margin: 2px;
     height: 30px;
@@ -260,11 +265,15 @@ body {
     width: 300px;
   }
 
+  .board .table {
+    padding: 1px;
+  }
+
   .tile_row__button {
     width: 30px;
-    height: 18px;
+    height: 19px;
     font-size: 12px;
-    line-height: 18px;
+    line-height: 19px;
     margin-top: -8px;
     margin-left: -19px;
   }
@@ -275,8 +284,8 @@ body {
 
   .tile {
     margin: 2px;
-    height: 18px;
-    width: 18px;
+    height: 19px;
+    width: 19px;
     line-height: 18px;
   }
 }
