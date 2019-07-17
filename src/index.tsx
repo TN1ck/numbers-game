@@ -13,25 +13,25 @@ const numbersGame: {
 // Utility functions
 //
 
-const base = 9;
+const BASE = 9;
 
 function toXY(n: number) {
   return {
-    y: Math.floor(n / base),
-    x: n % base
+    y: Math.floor(n / BASE),
+    x: n % BASE
   };
 }
 
 function toIndex(x: number, y: number) {
-  return y * base + x;
+  return y * BASE + x;
 }
 
 function splitAt<T>(list: T[], fun: (d: T) => boolean) {
-  var splitted: T[][] = [];
-  var current: T[] = [];
+  const splitted: T[][] = [];
+  let current: T[] = [];
 
   list.forEach((d, i) => {
-    var result = fun(d);
+    const result = fun(d);
 
     if (result) {
       if (current.length > 0) {
@@ -52,12 +52,12 @@ function splitAt<T>(list: T[], fun: (d: T) => boolean) {
 }
 
 function partitionBy<T>(list: T[], fun: (d: T) => any) {
-  var partitioned: T[][] = [];
-  var current: T[] = [];
-  var lastElemResult: any;
+  const partitioned: T[][] = [];
+  let current: T[] = [];
+  let lastElemResult: any;
 
   list.forEach((d, i) => {
-    var result = fun(d);
+    const result = fun(d);
 
     if (result === lastElemResult || i === 0) {
       current.push(d);
@@ -85,20 +85,31 @@ interface TileRow {
   active: boolean;
 }
 
-class Tile {
-  board: any;
-  v: any;
-  x: any;
-  y: any;
+const isTile = (tile: Tile | boolean): tile is Tile => {
+  return tile !== false;
+};
+
+interface SerializedTile {
+  x: number;
+  v: number;
+  y: number;
+  active: boolean;
+}
+
+class Tile implements SerializedTile {
+  board: Board;
+  v: number;
+  x: number;
+  y: number;
   active: boolean;
   matchable: boolean;
   selected: boolean;
-  listener: any;
+  callback: (e: React.MouseEvent<HTMLDivElement>) => void;
   neighbours: {
-    above: any;
-    below: any;
-    right: any;
-    left: any;
+    above: Tile | boolean;
+    below: Tile | boolean;
+    right: Tile | boolean;
+    left: Tile | boolean;
   };
   classes = {
     selected: "tile__selected",
@@ -107,11 +118,11 @@ class Tile {
     inactive: "tile__matched"
   };
   className: string = "";
-  constructor(v: any, board: any) {
+  constructor(v: number, board: Board) {
     this.v = v;
     this.board = board;
 
-    var xy = this.toXY();
+    const xy = this.toXY();
     this.y = xy.y;
     this.x = xy.x;
 
@@ -125,7 +136,7 @@ class Tile {
     this.active = true;
     this.matchable = false;
     this.selected = false;
-    this.listener = this.getCallback();
+    this.callback = this.createCallback();
 
     board.tiles.push(this);
   }
@@ -142,23 +153,23 @@ class Tile {
     this.active = false;
 
     var below = this.neighbours.below;
-    if (below) {
+    if (isTile(below)) {
       below.neighbours.above = false;
     }
     var above = this.neighbours.above;
-    if (above) {
+    if (isTile(above)) {
       above.neighbours.below = false;
     }
     var right = this.neighbours.right;
-    if (right) {
+    if (isTile(right)) {
       right.neighbours.left = false;
     }
     var left = this.neighbours.left;
-    if (left) {
+    if (isTile(left)) {
       left.neighbours.right = false;
     }
 
-    this.getNeighbours().forEach(function(t: any) {
+    this.getNeighbours().forEach(t => {
       t.matchable = false;
     });
   }
@@ -178,17 +189,18 @@ class Tile {
   }
 
   checkMatch(tile) {
-    return tile.v + this.v === base + 1 || tile.v === this.v;
+    return tile.v + this.v === BASE + 1 || tile.v === this.v;
   }
 
-  getNeighbour(neighbour: any, inc: any) {
-    var n = this.toIndex() + inc;
+  getNeighbour(neighbour: "above" | "below" | "right" | "left", inc: number) {
+    let n = this.toIndex() + inc;
 
-    if (this.neighbours[neighbour]) {
-      n = this.neighbours[neighbour].toIndex();
+    const neighbourTile = this.neighbours[neighbour];
+    if (isTile(neighbourTile)) {
+      n = neighbourTile.toIndex();
     }
 
-    var possibleTile: boolean | Tile = true;
+    let possibleTile: boolean | Tile = true;
 
     while (possibleTile && !(possibleTile as Tile).active) {
       possibleTile = this.board.tiles[n];
@@ -199,23 +211,21 @@ class Tile {
   }
 
   setNeighbours() {
-    this.neighbours.above = this.getNeighbour("above", -base);
-    this.neighbours.below = this.getNeighbour("below", base);
+    this.neighbours.above = this.getNeighbour("above", -BASE);
+    this.neighbours.below = this.getNeighbour("below", BASE);
     this.neighbours.right = this.getNeighbour("right", 1);
     this.neighbours.left = this.getNeighbour("left", -1);
   }
 
   getNeighbours(): Tile[] {
-    var correct = [
+    const correct = [
       this.neighbours.above,
       this.neighbours.below,
       this.neighbours.left,
       this.neighbours.right
     ];
 
-    return correct.filter(function(d) {
-      return d && d.active;
-    });
+    return correct.filter(d => isTile(d) && d.active) as Tile[];
   }
 
   getMatches() {
@@ -270,42 +280,43 @@ class Tile {
     this.className = "";
   }
 
-  serialize() {
-    var that = this;
+  serialize(): SerializedTile {
+    const { x, y, v, active } = this;
 
     return {
-      x: that.x,
-      y: that.y,
-      v: that.v,
-      active: that.active
+      x,
+      y,
+      v,
+      active
     };
   }
 
-  deserialize(tileDict, board) {
+  hydrate(tileDict, board) {
     Object.assign(this, tileDict);
     this.neighbours.above = false;
     this.neighbours.below = false;
     this.neighbours.left = false;
     this.neighbours.right = false;
     this.board = board;
-    this.listener = this.getCallback();
+    this.callback = this.createCallback();
   }
 
-  getCallback() {
-    var tile = this;
+  createCallback() {
+    const tile = this;
 
-    var callback = function() {
-      var otherTile = tile.board.currentlySelected;
+    const callback = () => {
+      const otherTile = tile.board.currentlySelected as Tile;
 
+      // when matchable, currentlySelected is always a tile
       if (tile.matchable) {
         tile.board.save();
 
         tile.board.steps++;
 
-        var matchedTiles = [tile, otherTile];
+        const matchedTiles = [tile, otherTile];
         matchedTiles.forEach(t => t.deactivate());
 
-        var affected_tiles = tile
+        const affected_tiles = tile
           .getNeighbours()
           .concat(otherTile.getNeighbours());
         affected_tiles.concat(matchedTiles).forEach(t => t.update());
@@ -315,7 +326,7 @@ class Tile {
         return;
       }
 
-      var oldSelection = [];
+      let oldSelection: Tile[] = [];
 
       if (otherTile) {
         otherTile.deselect();
@@ -333,15 +344,15 @@ class Tile {
       tile.board.update();
     };
 
-    var flag = false;
+    let flag = false;
 
-    var callbackTimeout = function(e) {
+    const callbackTimeout = (e: React.MouseEvent<HTMLDivElement>) => {
       if (!flag) {
         flag = true;
-        setTimeout(function() {
+        setTimeout(() => {
           flag = false;
         }, 200);
-        callback.bind(this)();
+        callback();
       }
       e.preventDefault();
     };
@@ -350,12 +361,15 @@ class Tile {
   }
 }
 
+type SerializedBoard = SerializedTile[];
+
 class Board {
   tiles: Tile[] = [];
   steps = 0;
-  boardHistory: any[] = [];
+  boardHistory: SerializedBoard[] = [];
   iterations = 0;
   base: number;
+  currentlySelected: Tile | null = null;
 
   constructor(base: number) {
     numbersGame.board = this;
@@ -380,7 +394,7 @@ class Board {
 
   init() {
     [0, 1].forEach(row => {
-      range(base).forEach(col => {
+      range(BASE).forEach(col => {
         var value = "" + (row * 10 + col + 1);
         range(value.length).forEach(i => {
           new Tile(Number(value[i]), this);
@@ -390,8 +404,12 @@ class Board {
     this.tiles.forEach(t => t.update());
   }
 
+  serialize(): SerializedBoard {
+    return this.tiles.map(t => t.serialize());
+  }
+
   save() {
-    this.boardHistory.push(this.tiles.map(t => t.serialize()));
+    this.boardHistory.push(this.serialize());
     if (this.boardHistory.length > 100) {
       this.boardHistory.shift();
     }
@@ -409,7 +427,7 @@ class Board {
   setState(state) {
     state = state.map(tile => {
       var t = new Tile(0, this);
-      t.deserialize(tile, this);
+      t.hydrate(tile, this);
       return t;
     });
     this.tiles = state;
@@ -423,9 +441,7 @@ class Board {
     }
 
     if (this.leftMatches().length === 0) {
-      var activeTiles = this.activeTiles();
-
-      activeTiles.forEach(t => {
+      this.activeTiles().forEach(t => {
         new Tile(t.v, this);
       });
 
@@ -539,36 +555,36 @@ class Game {
     this.pilotRunning = !this.pilotRunning;
 
     const run = () => {
-      var leftTiles: Tile[] = [];
+      let leftTiles: Tile[] = [];
 
       // hints
       numbersGame.board.activeTiles().forEach(tile => {
-        var matches = tile.getMatches();
+        const matches = tile.getMatches();
         leftTiles = leftTiles.concat(matches);
       });
 
-      var tiles: HTMLElement[] = [];
+      let tiles: HTMLElement[] = [];
       [
         "tile__hint_1",
         "tile__hint_2",
         "tile__hint_3",
         "tile__hint_4"
       ].forEach(tile_class => {
-        var selection = Array.from(
+        const selection = Array.from(
           document.getElementsByClassName(tile_class)
         ) as HTMLElement[];
         tiles = tiles.concat(selection);
       });
 
-      var tile = tiles[random(0, tiles.length - 1)];
+      const tile = tiles[random(0, tiles.length - 1)];
 
       if (tile) {
         tile.click();
       }
 
       setTimeout(() => {
-        var elems = document.getElementsByClassName("tile__good_match");
-        var el = elems[random(elems.length - 1)] as HTMLElement;
+        const elems = document.getElementsByClassName("tile__good_match");
+        const el = elems[random(elems.length - 1)] as HTMLElement;
         el.click();
         if (this.pilotRunning) {
           run();
@@ -593,13 +609,17 @@ class ReactGame extends React.Component<
   constructor(props) {
     super(props);
     this.state = {
-      board: new Board(base)
+      board: new Board(BASE)
     };
     this.restartGame = this.restartGame.bind(this);
     this.stepBack = this.stepBack.bind(this);
+    this.setBoard = this.setBoard.bind(this);
+  }
+  setBoard(board) {
+    this.setState({ board });
   }
   restartGame() {
-    this.setState({ board: new Board(base) });
+    this.setState({ board: new Board(BASE) });
   }
   stepBack() {
     this.state.board.stepBack();
@@ -623,7 +643,7 @@ class ReactGame extends React.Component<
           </div>
         </div>
         <div className="board">
-          <ReactBoard board={this.state.board} game={this} />
+          <ReactBoard board={this.state.board} setBoard={this.setBoard} />
         </div>
       </div>
     );
@@ -632,15 +652,15 @@ class ReactGame extends React.Component<
 
 const ReactBoard: React.StatelessComponent<{
   board: Board;
-  game: ReactGame;
-}> = ({ board, game }) => {
+  setBoard: (board: Board) => void;
+}> = ({ board, setBoard }) => {
   // some magic to hide rows
-  var rows = board.getRows();
-  var splittedRows = partitionBy(rows, r => r.active);
+  const rows = board.getRows();
+  const splittedRows = partitionBy(rows, r => r.active);
 
-  var result = splittedRows.map(function(splitted, i) {
-    var hiddenRows = splitted.map(function(row, j) {
-      return <ReactRow row={row} key={j} game={game} />;
+  const result = splittedRows.map(function(splitted, i) {
+    const hiddenRows = splitted.map(function(row, j) {
+      return <ReactRow row={row} key={j} setBoard={setBoard} />;
     });
 
     if (splitted.length > 1 && !splitted[0].active) {
@@ -662,15 +682,15 @@ const ReactBoard: React.StatelessComponent<{
 
 class ReactRow extends React.Component<{
   row: TileRow;
-  game: ReactGame;
+  setBoard: (board: Board) => void;
 }> {
-  shouldComponentUpdate(props: any) {
+  shouldComponentUpdate(props) {
     return props.row.active;
   }
   render() {
-    const { row, game } = this.props;
-    var tiles = row.tiles.map((tile, i) => {
-      return <ReactTile tile={tile} key={i} game={game} />;
+    const { row, setBoard } = this.props;
+    const tiles = row.tiles.map((tile, i) => {
+      return <ReactTile tile={tile} key={i} setBoard={setBoard} />;
     });
     return (
       <div className={"tile_row" + (row.active ? "" : " tile_row__hidden")}>
@@ -682,30 +702,22 @@ class ReactRow extends React.Component<{
 
 const ReactTile: React.StatelessComponent<{
   tile: Tile;
-  game: ReactGame;
-}> = ({ tile, game }) => {
-  var callback: any = function(e: any) {
-    tile.listener.bind(this)(e);
-    game.setState(tile.board);
+  setBoard: (board: Board) => void;
+}> = ({ tile, setBoard }) => {
+  const callback = e => {
+    if (tile.getMatches().length <= 0) {
+      return;
+    }
+    tile.callback(e);
+    setBoard(tile.board);
   };
-
-  callback = tile.getMatches().length > 0 ? callback : null;
-
-  var settings: any = {
-    className: ["tile", tile.className].join(" ")
-  };
-
-  if (callback) {
-    settings.onTouchStart = callback;
-    settings.onClick = callback;
-  }
 
   return (
     <div className="tile_cell">
       <div
         className={["tile", tile.className].join(" ")}
-        onTouchStart={callback || null}
-        onClick={callback || null}
+        onTouchStart={callback}
+        onClick={callback}
       >
         {tile.v}
       </div>
@@ -713,7 +725,7 @@ const ReactTile: React.StatelessComponent<{
   );
 };
 
-var game = new Game(document.getElementById("react") as HTMLElement);
+const game = new Game(document.getElementById("react") as HTMLElement);
 game.run();
 
 numbersGame.game = game;
