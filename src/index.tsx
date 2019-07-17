@@ -1,6 +1,5 @@
 import * as React from "react";
 import * as ReactDom from "react-dom";
-import { random, range, flatten } from "lodash";
 
 const numbersGame: {
   board: Board;
@@ -24,6 +23,18 @@ function toXY(n: number) {
 
 function toIndex(x: number, y: number) {
   return y * BASE + x;
+}
+
+function range(n: number) {
+  return Array.from({ length: n }, (_, i) => i);
+}
+
+function flatten<T>(list: T[][]): T[] {
+  return ([] as T[]).concat(...list);
+}
+
+function randomElement<T>(list: T[]): T {
+  return list[Math.floor(Math.random() * list.length)];
 }
 
 function splitAt<T>(list: T[], fun: (d: T) => boolean) {
@@ -111,7 +122,7 @@ class Tile implements SerializedTile {
     right: Tile | boolean;
     left: Tile | boolean;
   };
-  classes = {
+  static classes = {
     selected: "tile__selected",
     matchable: "tile__good_match",
     hint: ["tile__hint_1", "tile__hint_2", "tile__hint_3", "tile__hint_4"],
@@ -256,24 +267,24 @@ class Tile implements SerializedTile {
     this.setNeighbours();
 
     if (!this.active) {
-      this.className = this.classes.inactive;
+      this.className = Tile.classes.inactive;
       return;
     }
 
     if (this.selected) {
-      this.className = this.classes.selected;
+      this.className = Tile.classes.selected;
       return;
     }
 
     if (this.matchable) {
-      this.className = this.classes.matchable;
+      this.className = Tile.classes.matchable;
       return;
     }
 
     var numberOfMatches = this.getMatches().length;
 
     if (numberOfMatches > 0) {
-      this.className = this.classes.hint[numberOfMatches - 1];
+      this.className = Tile.classes.hint[numberOfMatches - 1];
       return;
     }
 
@@ -316,10 +327,10 @@ class Tile implements SerializedTile {
         const matchedTiles = [tile, otherTile];
         matchedTiles.forEach(t => t.deactivate());
 
-        const affected_tiles = tile
+        const affectedTiles = tile
           .getNeighbours()
           .concat(otherTile.getNeighbours());
-        affected_tiles.concat(matchedTiles).forEach(t => t.update());
+        affectedTiles.concat(matchedTiles).forEach(t => t.update());
 
         tile.board.update();
 
@@ -472,7 +483,7 @@ class Board {
     });
   }
 
-  leftMatches() {
+  leftMatches(): Tile[] {
     return flatten(this.activeTiles().map(t => t.getMatches()));
   }
 
@@ -576,15 +587,15 @@ class Game {
         tiles = tiles.concat(selection);
       });
 
-      const tile = tiles[random(0, tiles.length - 1)];
+      const tile = randomElement(tiles);
 
       if (tile) {
         tile.click();
       }
 
       setTimeout(() => {
-        const elems = document.getElementsByClassName("tile__good_match");
-        const el = elems[random(elems.length - 1)] as HTMLElement;
+        const elems = document.getElementsByClassName(Tile.classes.matchable);
+        const el = randomElement(Array.from(elems)) as HTMLElement;
         el.click();
         if (this.pilotRunning) {
           run();
