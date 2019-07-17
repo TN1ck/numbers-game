@@ -1,6 +1,6 @@
-import * as React from 'react';
-import * as ReactDom from 'react-dom';
-import {random, range, flatten} from 'lodash';
+import * as React from "react";
+import * as ReactDom from "react-dom";
+import { random, range, flatten } from "lodash";
 
 const numbersGame: {
   board: Board;
@@ -18,7 +18,7 @@ const base = 9;
 function toXY(n: number) {
   return {
     y: Math.floor(n / base),
-    x: n % base,
+    x: n % base
   };
 }
 
@@ -101,12 +101,12 @@ class Tile {
     left: any;
   };
   classes = {
-    selected: 'tile__selected',
-    matchable: 'tile__good_match',
-    hint: ['tile__hint_1', 'tile__hint_2', 'tile__hint_3', 'tile__hint_4'],
-    inactive: 'tile__matched',
+    selected: "tile__selected",
+    matchable: "tile__good_match",
+    hint: ["tile__hint_1", "tile__hint_2", "tile__hint_3", "tile__hint_4"],
+    inactive: "tile__matched"
   };
-  className: string = '';
+  className: string = "";
   constructor(v: any, board: any) {
     this.v = v;
     this.board = board;
@@ -119,7 +119,7 @@ class Tile {
       above: false,
       below: false,
       right: false,
-      left: false,
+      left: false
     };
 
     this.active = true;
@@ -199,10 +199,10 @@ class Tile {
   }
 
   setNeighbours() {
-    this.neighbours.above = this.getNeighbour('above', -base);
-    this.neighbours.below = this.getNeighbour('below', base);
-    this.neighbours.right = this.getNeighbour('right', 1);
-    this.neighbours.left = this.getNeighbour('left', -1);
+    this.neighbours.above = this.getNeighbour("above", -base);
+    this.neighbours.below = this.getNeighbour("below", base);
+    this.neighbours.right = this.getNeighbour("right", 1);
+    this.neighbours.left = this.getNeighbour("left", -1);
   }
 
   getNeighbours(): Tile[] {
@@ -210,7 +210,7 @@ class Tile {
       this.neighbours.above,
       this.neighbours.below,
       this.neighbours.left,
-      this.neighbours.right,
+      this.neighbours.right
     ];
 
     return correct.filter(function(d) {
@@ -267,7 +267,7 @@ class Tile {
       return;
     }
 
-    this.className = '';
+    this.className = "";
   }
 
   serialize() {
@@ -277,7 +277,7 @@ class Tile {
       x: that.x,
       y: that.y,
       v: that.v,
-      active: that.active,
+      active: that.active
     };
   }
 
@@ -373,7 +373,7 @@ class Board {
     }).map(tiles => {
       return {
         tiles: tiles,
-        active: tiles.some(t => t.active),
+        active: tiles.some(t => t.active)
       };
     });
   }
@@ -381,7 +381,7 @@ class Board {
   init() {
     [0, 1].forEach(row => {
       range(base).forEach(col => {
-        var value = '' + (row * 10 + col + 1);
+        var value = "" + (row * 10 + col + 1);
         range(value.length).forEach(i => {
           new Tile(Number(value[i]), this);
         });
@@ -391,7 +391,7 @@ class Board {
   }
 
   save() {
-    this.boardHistory.push(this.tiles.map(t => t.serialize));
+    this.boardHistory.push(this.tiles.map(t => t.serialize()));
     if (this.boardHistory.length > 100) {
       this.boardHistory.shift();
     }
@@ -418,7 +418,7 @@ class Board {
 
   update() {
     if (this.activeTiles().length === 0) {
-      window.alert('You won the game! Congrats!');
+      window.alert("You won the game! Congrats!");
       return;
     }
 
@@ -433,7 +433,7 @@ class Board {
     }
 
     if (this.iterations >= 5) {
-      window.alert('Oh no you lost!');
+      window.alert("Oh no you lost!");
       return;
     }
 
@@ -462,75 +462,75 @@ class Board {
 
   testBoards = {
     infinite: [
-      {x: 0, y: 0, v: 1, active: false},
-      {x: 1, y: 0, v: 2, active: true},
-      {x: 2, y: 0, v: 3, active: true},
-      {x: 3, y: 0, v: 1, active: false},
-      {x: 4, y: 0, v: 1, active: false},
-      {x: 5, y: 0, v: 1, active: false},
-      {x: 6, y: 0, v: 1, active: false},
-      {x: 7, y: 0, v: 1, active: false},
-      {x: 8, y: 0, v: 1, active: false},
+      { x: 0, y: 0, v: 1, active: false },
+      { x: 1, y: 0, v: 2, active: true },
+      { x: 2, y: 0, v: 3, active: true },
+      { x: 3, y: 0, v: 1, active: false },
+      { x: 4, y: 0, v: 1, active: false },
+      { x: 5, y: 0, v: 1, active: false },
+      { x: 6, y: 0, v: 1, active: false },
+      { x: 7, y: 0, v: 1, active: false },
+      { x: 8, y: 0, v: 1, active: false },
 
-      {x: 0, y: 1, v: 1, active: false},
-      {x: 1, y: 1, v: 2, active: false},
-      {x: 2, y: 1, v: 3, active: false},
-      {x: 3, y: 1, v: 1, active: false},
-      {x: 4, y: 1, v: 1, active: false},
-      {x: 5, y: 1, v: 1, active: false},
-      {x: 6, y: 1, v: 1, active: false},
-      {x: 7, y: 1, v: 4, active: true},
-      {x: 8, y: 1, v: 4, active: false},
+      { x: 0, y: 1, v: 1, active: false },
+      { x: 1, y: 1, v: 2, active: false },
+      { x: 2, y: 1, v: 3, active: false },
+      { x: 3, y: 1, v: 1, active: false },
+      { x: 4, y: 1, v: 1, active: false },
+      { x: 5, y: 1, v: 1, active: false },
+      { x: 6, y: 1, v: 1, active: false },
+      { x: 7, y: 1, v: 4, active: true },
+      { x: 8, y: 1, v: 4, active: false },
 
-      {x: 0, y: 2, v: 1, active: false},
-      {x: 1, y: 2, v: 2, active: false},
-      {x: 2, y: 2, v: 3, active: false},
-      {x: 3, y: 2, v: 1, active: true},
-      {x: 4, y: 2, v: 1, active: false},
-      {x: 5, y: 2, v: 1, active: false},
-      {x: 6, y: 2, v: 1, active: false},
-      {x: 7, y: 2, v: 1, active: false},
-      {x: 8, y: 2, v: 4, active: false},
+      { x: 0, y: 2, v: 1, active: false },
+      { x: 1, y: 2, v: 2, active: false },
+      { x: 2, y: 2, v: 3, active: false },
+      { x: 3, y: 2, v: 1, active: true },
+      { x: 4, y: 2, v: 1, active: false },
+      { x: 5, y: 2, v: 1, active: false },
+      { x: 6, y: 2, v: 1, active: false },
+      { x: 7, y: 2, v: 1, active: false },
+      { x: 8, y: 2, v: 4, active: false },
 
-      {x: 0, y: 3, v: 1, active: false},
-      {x: 1, y: 3, v: 2, active: false},
-      {x: 2, y: 3, v: 3, active: false},
-      {x: 3, y: 3, v: 4, active: true},
-      {x: 4, y: 3, v: 1, active: false},
-      {x: 5, y: 3, v: 1, active: false},
-      {x: 6, y: 3, v: 1, active: false},
-      {x: 7, y: 3, v: 1, active: false},
-      {x: 8, y: 3, v: 4, active: false},
+      { x: 0, y: 3, v: 1, active: false },
+      { x: 1, y: 3, v: 2, active: false },
+      { x: 2, y: 3, v: 3, active: false },
+      { x: 3, y: 3, v: 4, active: true },
+      { x: 4, y: 3, v: 1, active: false },
+      { x: 5, y: 3, v: 1, active: false },
+      { x: 6, y: 3, v: 1, active: false },
+      { x: 7, y: 3, v: 1, active: false },
+      { x: 8, y: 3, v: 4, active: false },
 
-      {x: 0, y: 4, v: 1, active: false},
-      {x: 1, y: 4, v: 2, active: false},
-      {x: 2, y: 4, v: 3, active: false},
-      {x: 3, y: 4, v: 1, active: true},
-      {x: 4, y: 4, v: 1, active: false},
-      {x: 5, y: 4, v: 1, active: false},
-      {x: 6, y: 4, v: 1, active: false},
-      {x: 7, y: 4, v: 1, active: false},
-      {x: 8, y: 4, v: 4, active: false},
+      { x: 0, y: 4, v: 1, active: false },
+      { x: 1, y: 4, v: 2, active: false },
+      { x: 2, y: 4, v: 3, active: false },
+      { x: 3, y: 4, v: 1, active: true },
+      { x: 4, y: 4, v: 1, active: false },
+      { x: 5, y: 4, v: 1, active: false },
+      { x: 6, y: 4, v: 1, active: false },
+      { x: 7, y: 4, v: 1, active: false },
+      { x: 8, y: 4, v: 4, active: false },
 
-      {x: 0, y: 5, v: 1, active: false},
-      {x: 1, y: 5, v: 2, active: false},
-      {x: 2, y: 5, v: 5, active: true},
-      {x: 3, y: 5, v: 1, active: false},
-      {x: 4, y: 5, v: 5, active: true},
-      {x: 5, y: 5, v: 1, active: false},
-      {x: 6, y: 5, v: 1, active: false},
-      {x: 7, y: 5, v: 7, active: true},
-      {x: 8, y: 5, v: 1, active: true},
+      { x: 0, y: 5, v: 1, active: false },
+      { x: 1, y: 5, v: 2, active: false },
+      { x: 2, y: 5, v: 5, active: true },
+      { x: 3, y: 5, v: 1, active: false },
+      { x: 4, y: 5, v: 5, active: true },
+      { x: 5, y: 5, v: 1, active: false },
+      { x: 6, y: 5, v: 1, active: false },
+      { x: 7, y: 5, v: 7, active: true },
+      { x: 8, y: 5, v: 1, active: true },
 
-      {x: 0, y: 6, v: 8, active: true},
-      {x: 1, y: 6, v: 1, active: true},
-    ],
+      { x: 0, y: 6, v: 8, active: true },
+      { x: 1, y: 6, v: 1, active: true }
+    ]
   };
 }
 
 class Game {
   root: HTMLElement;
-  pilotRunning: boolean;
+  pilotRunning: boolean = false;
   constructor(root: HTMLElement) {
     this.root = root;
   }
@@ -548,11 +548,17 @@ class Game {
       });
 
       var tiles: HTMLElement[] = [];
-      ['tile__hint_1', 'tile__hint_2', 'tile__hint_3', 'tile__hint_4'].forEach((tile_class) => {
-          var selection = (Array.from(document.getElementsByClassName(tile_class)) as HTMLElement[]);
-          tiles = tiles.concat(selection);
-        },
-      );
+      [
+        "tile__hint_1",
+        "tile__hint_2",
+        "tile__hint_3",
+        "tile__hint_4"
+      ].forEach(tile_class => {
+        var selection = Array.from(
+          document.getElementsByClassName(tile_class)
+        ) as HTMLElement[];
+        tiles = tiles.concat(selection);
+      });
 
       var tile = tiles[random(0, tiles.length - 1)];
 
@@ -561,8 +567,8 @@ class Game {
       }
 
       setTimeout(() => {
-        var elems = document.getElementsByClassName('tile__good_match');
-        var el = (elems[random(elems.length - 1)] as HTMLElement);
+        var elems = document.getElementsByClassName("tile__good_match");
+        var el = elems[random(elems.length - 1)] as HTMLElement;
         el.click();
         if (this.pilotRunning) {
           run();
@@ -584,21 +590,20 @@ class ReactGame extends React.Component<
     board: Board;
   }
 > {
-  displayName: 'Game';
   constructor(props) {
     super(props);
     this.state = {
-      board: new Board(base),
+      board: new Board(base)
     };
     this.restartGame = this.restartGame.bind(this);
     this.stepBack = this.stepBack.bind(this);
   }
   restartGame() {
-    this.setState({board: new Board(base)});
+    this.setState({ board: new Board(base) });
   }
   stepBack() {
     this.state.board.stepBack();
-    this.setState({board: this.state.board});
+    this.setState({ board: this.state.board });
   }
   render() {
     return (
@@ -606,14 +611,14 @@ class ReactGame extends React.Component<
         <div className="header">
           <div className="buttons">
             <div className="score">
-              <div className="small">{'steps'}</div>
+              <div className="small">{"steps"}</div>
               <div>{this.state.board.steps}</div>
             </div>
             <div className="new" onClick={this.restartGame}>
-              {'New Game'}
+              {"New Game"}
             </div>
             <div className="new" onClick={this.stepBack}>
-              {'Back'}
+              {"Back"}
             </div>
           </div>
         </div>
@@ -628,10 +633,7 @@ class ReactGame extends React.Component<
 const ReactBoard: React.StatelessComponent<{
   board: Board;
   game: ReactGame;
-}> = ({
-  board,
-  game,
-}) => {
+}> = ({ board, game }) => {
   // some magic to hide rows
   var rows = board.getRows();
   var splittedRows = partitionBy(rows, r => r.active);
@@ -645,7 +647,7 @@ const ReactBoard: React.StatelessComponent<{
       hiddenRows.push(
         <div className="tile_row__button" key="button">
           {splitted.length}
-        </div>,
+        </div>
       );
     }
 
@@ -655,9 +657,7 @@ const ReactBoard: React.StatelessComponent<{
       </div>
     );
   });
-  return (
-    <div className="table">{result}</div>
-  );
+  return <div className="table">{result}</div>;
 };
 
 class ReactRow extends React.Component<{
@@ -668,15 +668,12 @@ class ReactRow extends React.Component<{
     return props.row.active;
   }
   render() {
-    const {
-      row,
-      game,
-    } = this.props;
+    const { row, game } = this.props;
     var tiles = row.tiles.map((tile, i) => {
       return <ReactTile tile={tile} key={i} game={game} />;
     });
     return (
-      <div className={'tile_row' + (row.active ? '' : ' tile_row__hidden')}>
+      <div className={"tile_row" + (row.active ? "" : " tile_row__hidden")}>
         {tiles}
       </div>
     );
@@ -686,7 +683,7 @@ class ReactRow extends React.Component<{
 const ReactTile: React.StatelessComponent<{
   tile: Tile;
   game: ReactGame;
-}> = ({tile, game}) => {
+}> = ({ tile, game }) => {
   var callback: any = function(e: any) {
     tile.listener.bind(this)(e);
     game.setState(tile.board);
@@ -695,7 +692,7 @@ const ReactTile: React.StatelessComponent<{
   callback = tile.getMatches().length > 0 ? callback : null;
 
   var settings: any = {
-    className: ['tile', tile.className].join(' '),
+    className: ["tile", tile.className].join(" ")
   };
 
   if (callback) {
@@ -706,15 +703,17 @@ const ReactTile: React.StatelessComponent<{
   return (
     <div className="tile_cell">
       <div
-        className={['tile', tile.className].join(' ')}
+        className={["tile", tile.className].join(" ")}
         onTouchStart={callback || null}
         onClick={callback || null}
-      >{tile.v}</div>
+      >
+        {tile.v}
+      </div>
     </div>
   );
 };
 
-var game = new Game(document.getElementById('react') as HTMLElement);
+var game = new Game(document.getElementById("react") as HTMLElement);
 game.run();
 
 numbersGame.game = game;
