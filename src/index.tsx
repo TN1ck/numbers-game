@@ -4,8 +4,7 @@ import * as ReactDom from "react-dom";
 const numbersGame: {
   board: Board;
   game: Game;
-} =
-  (window as any).numbersGame || {};
+} = (window as any).numbersGame || {};
 (window as any).numbersGame = numbersGame;
 
 //
@@ -571,17 +570,14 @@ class Game {
       });
 
       let tiles: HTMLElement[] = [];
-      [
-        "tile__hint_1",
-        "tile__hint_2",
-        "tile__hint_3",
-        "tile__hint_4"
-      ].forEach(tile_class => {
-        const selection = Array.from(
-          document.getElementsByClassName(tile_class)
-        ) as HTMLElement[];
-        tiles = tiles.concat(selection);
-      });
+      ["tile__hint_1", "tile__hint_2", "tile__hint_3", "tile__hint_4"].forEach(
+        tile_class => {
+          const selection = Array.from(
+            document.getElementsByClassName(tile_class)
+          ) as HTMLElement[];
+          tiles = tiles.concat(selection);
+        }
+      );
 
       const tile = randomElement(tiles);
 
@@ -666,11 +662,14 @@ const ReactBoard: React.StatelessComponent<{
   const splittedRows = partitionBy(rows, r => r.active);
 
   const result = splittedRows.map((splitted, i) => {
-    const hiddenRows = splitted.map((row, j) => {
+    let hiddenRows = splitted.map((row, j) => {
       return <ReactRow row={row} key={j} setBoard={setBoard} />;
     });
 
     if (splitted.length > 1 && !splitted[0].active) {
+      if (hiddenRows.length > 2) {
+        hiddenRows = hiddenRows.slice(0, 2);
+      }
       hiddenRows.push(
         <div className="tile_row__button" key="button">
           {splitted.length}
