@@ -10,4 +10,5 @@ export default defineConfig(({command}) => ({
   preview: {
     port: 3009,
   },
+  base: "/numbers-game/",
 }));
