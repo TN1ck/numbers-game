@@ -1,6 +1,6 @@
 # Numbers Game
 
-You can play the game here: [https://numbersgame.netlify.com/](https://numbersgame.netlify.com/).
+You can play the game here: [https://tn1ck.gitlab.io/numbers-game/](https://tn1ck.gitlab.io/numbers-game/).
 
 This game is known under various names: Zahlenspiel, Numberama, Take Ten, Seeds or Numbers.
 
