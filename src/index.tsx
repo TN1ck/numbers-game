@@ -1,5 +1,7 @@
 import * as React from "react";
-import * as ReactDom from "react-dom";
+import {createRoot} from "react-dom/client";
+
+import "./styles.css";
 
 const numbersGame: {
   board: Board;
@@ -61,7 +63,7 @@ function splitAt<T>(list: T[], fun: (d: T) => boolean) {
   return splitted;
 }
 
-function partitionBy<T>(list: T[], fun: (d: T) => any) {
+function partitionBy<T>(list: T[], fun: (d: T) => any): T[][] {
   const partitioned: T[][] = [];
   let current: T[] = [];
   let lastElemResult: any;
@@ -599,7 +601,7 @@ class Game {
   }
 
   run() {
-    ReactDom.render(<ReactGame />, this.root);
+     createRoot(this.root).render(<ReactGame />);
   }
 }
 
@@ -653,7 +655,7 @@ class ReactGame extends React.Component<
   }
 }
 
-const ReactBoard: React.StatelessComponent<{
+const ReactBoard: React.FC<{
   board: Board;
   setBoard: (board: Board) => void;
 }> = ({ board, setBoard }) => {
@@ -706,7 +708,7 @@ class ReactRow extends React.Component<{
   }
 }
 
-const ReactTile: React.StatelessComponent<{
+const ReactTile: React.FC<{
   tile: Tile;
   setBoard: (board: Board) => void;
 }> = ({ tile, setBoard }) => {
