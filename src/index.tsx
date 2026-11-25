@@ -1,24 +1,32 @@
 import * as React from "react";
-import {createRoot} from "react-dom/client";
+import { flushSync } from "react-dom";
+import { createRoot } from "react-dom/client";
 
 import "./styles.css";
 
-const numbersGame: {
+interface NumbersGameGlobal {
   board: Board;
   game: Game;
-} = (window as any).numbersGame || {};
-(window as any).numbersGame = numbersGame;
+}
+
+const globalWindow = window as unknown as {
+  numbersGame?: NumbersGameGlobal;
+};
+const numbersGame = (globalWindow.numbersGame ?? {}) as NumbersGameGlobal;
+globalWindow.numbersGame = numbersGame;
 
 //
 // Utility functions
 //
 
 const BASE = 9;
+const MAX_HISTORY = 100;
+const MAX_REFILL_ITERATIONS = 5;
 
 function toXY(n: number) {
   return {
     y: Math.floor(n / BASE),
-    x: n % BASE
+    x: n % BASE,
   };
 }
 
@@ -30,15 +38,14 @@ function range(n: number) {
   return Array.from({ length: n }, (_, i) => i);
 }
 
-function flatten<T>(list: T[][]): T[] {
-  return ([] as T[]).concat(...list);
-}
-
-function randomElement<T>(list: T[]): T {
+function randomElement<T>(list: T[]): T | undefined {
+  if (list.length === 0) {
+    return undefined;
+  }
   return list[Math.floor(Math.random() * list.length)];
 }
 
-function splitAt<T>(list: T[], fun: (d: T) => boolean) {
+function splitAt<T>(list: T[], fun: (d: T) => boolean): T[][] {
   const splitted: T[][] = [];
   let current: T[] = [];
 
@@ -63,10 +70,10 @@ function splitAt<T>(list: T[], fun: (d: T) => boolean) {
   return splitted;
 }
 
-function partitionBy<T>(list: T[], fun: (d: T) => any): T[][] {
+function partitionBy<T, K>(list: T[], fun: (d: T) => K): T[][] {
   const partitioned: T[][] = [];
   let current: T[] = [];
-  let lastElemResult: any;
+  let lastElemResult: K | undefined;
 
   list.forEach((d, i) => {
     const result = fun(d);
@@ -92,7 +99,10 @@ function partitionBy<T>(list: T[], fun: (d: T) => any): T[][] {
 // Classes & Interfaces
 //
 
+type GameOutcome = "playing" | "won" | "lost";
+
 interface TileRow {
+  rowIndex: number;
   tiles: Tile[];
   active: boolean;
 }
@@ -108,6 +118,8 @@ interface SerializedTile {
   active: boolean;
 }
 
+type Direction = "above" | "below" | "right" | "left";
+
 class Tile implements SerializedTile {
   board: Board;
   v: number;
@@ -116,25 +128,20 @@ class Tile implements SerializedTile {
   active: boolean;
   matchable: boolean;
   selected: boolean;
-  callback: (e: React.MouseEvent<HTMLDivElement>) => void;
-  neighbours: {
-    above: Tile | boolean;
-    below: Tile | boolean;
-    right: Tile | boolean;
-    left: Tile | boolean;
-  };
+  neighbours: Record<Direction, Tile | boolean>;
   static classes = {
     selected: "tile__selected",
     matchable: "tile__good_match",
     hint: ["tile__hint_1", "tile__hint_2", "tile__hint_3", "tile__hint_4"],
-    inactive: "tile__matched"
+    inactive: "tile__matched",
   };
-  className: string = "";
-  constructor(v: number, board: Board) {
+  className = "";
+
+  constructor(v: number, board: Board, appendToBoard = true) {
     this.v = v;
     this.board = board;
 
-    const xy = this.toXY();
+    const xy = toXY(board.tiles.length);
     this.y = xy.y;
     this.x = xy.x;
 
@@ -142,19 +149,16 @@ class Tile implements SerializedTile {
       above: false,
       below: false,
       right: false,
-      left: false
+      left: false,
     };
 
     this.active = true;
     this.matchable = false;
     this.selected = false;
-    this.callback = this.createCallback();
 
-    board.tiles.push(this);
-  }
-
-  toXY() {
-    return toXY(this.board.tiles.length);
+    if (appendToBoard) {
+      board.tiles.push(this);
+    }
   }
 
   toIndex() {
@@ -163,6 +167,8 @@ class Tile implements SerializedTile {
 
   deactivate() {
     this.active = false;
+    this.selected = false;
+    this.matchable = false;
 
     const below = this.neighbours.below;
     if (isTile(below)) {
@@ -181,30 +187,30 @@ class Tile implements SerializedTile {
       left.neighbours.right = false;
     }
 
-    this.getNeighbours().forEach(t => {
+    this.getNeighbours().forEach((t) => {
       t.matchable = false;
     });
   }
 
   select() {
     this.selected = true;
-    this.getMatches().forEach(t => {
+    this.getMatches().forEach((t) => {
       t.matchable = true;
     });
   }
 
   deselect() {
     this.selected = false;
-    this.getMatches().forEach(t => {
+    this.getMatches().forEach((t) => {
       t.matchable = false;
     });
   }
 
-  checkMatch(tile) {
+  checkMatch(tile: Tile) {
     return tile.v + this.v === BASE + 1 || tile.v === this.v;
   }
 
-  getNeighbour(neighbour: "above" | "below" | "right" | "left", inc: number) {
+  getNeighbour(neighbour: Direction, inc: number): Tile | false {
     let n = this.toIndex() + inc;
 
     const neighbourTile = this.neighbours[neighbour];
@@ -212,14 +218,15 @@ class Tile implements SerializedTile {
       n = neighbourTile.toIndex();
     }
 
-    let possibleTile: boolean | Tile = true;
-
-    while (possibleTile && !(possibleTile as Tile).active) {
-      possibleTile = this.board.tiles[n];
+    while (n >= 0 && n < this.board.tiles.length) {
+      const candidate = this.board.tiles[n];
+      if (candidate.active) {
+        return candidate;
+      }
       n += inc;
     }
 
-    return possibleTile ? possibleTile : false;
+    return false;
   }
 
   setNeighbours() {
@@ -230,33 +237,29 @@ class Tile implements SerializedTile {
   }
 
   getNeighbours(): Tile[] {
-    const correct = [
+    const candidates = [
       this.neighbours.above,
       this.neighbours.below,
       this.neighbours.left,
-      this.neighbours.right
+      this.neighbours.right,
     ];
 
-    return correct.filter(d => isTile(d) && d.active) as Tile[];
+    return candidates.filter((d): d is Tile => isTile(d) && d.active);
   }
 
-  getMatches() {
+  getMatches(): Tile[] {
     if (!this.active) {
       return [];
     }
 
-    const matches = this.getNeighbours().filter(d => this.checkMatch(d));
-
-    // remove duplicates
-    return matches.filter((t, i) => {
-      const duplicates = matches.filter((tt, j) => {
-        if (i <= j) {
-          return false;
-        } else {
-          return t.x === tt.x && t.y === tt.y;
-        }
-      });
-      return duplicates.length === 0;
+    const matches = this.getNeighbours().filter((d) => this.checkMatch(d));
+    const seen = new Set<Tile>();
+    return matches.filter((t) => {
+      if (seen.has(t)) {
+        return false;
+      }
+      seen.add(t);
+      return true;
     });
   }
 
@@ -295,77 +298,73 @@ class Tile implements SerializedTile {
       x,
       y,
       v,
-      active
+      active,
     };
   }
 
-  hydrate(tileDict, board) {
-    Object.assign(this, tileDict);
+  hydrate(tileDict: SerializedTile, board: Board) {
+    this.x = tileDict.x;
+    this.y = tileDict.y;
+    this.v = tileDict.v;
+    this.active = tileDict.active;
+    this.selected = false;
+    this.matchable = false;
     this.neighbours.above = false;
     this.neighbours.below = false;
     this.neighbours.left = false;
     this.neighbours.right = false;
     this.board = board;
-    this.callback = this.createCallback();
   }
 
-  createCallback() {
-    const tile = this;
+  handleClick(): GameOutcome {
+    if (!this.active || this.getMatches().length === 0) {
+      return "playing";
+    }
 
-    const callback = () => {
-      const otherTile = tile.board.currentlySelected as Tile;
+    const otherTile = this.board.currentlySelected;
 
-      // when matchable, currentlySelected is always a tile
-      if (tile.matchable) {
-        tile.board.save();
+    // Matching the clicked tile with the currently selected tile
+    if (this.matchable && otherTile && otherTile.active) {
+      this.board.save();
+      this.board.steps++;
+      this.board.currentlySelected = null;
 
-        tile.board.steps++;
+      const matchedTiles = [this, otherTile];
+      const affectedTiles = new Set<Tile>([...this.getNeighbours(), ...otherTile.getNeighbours()]);
 
-        const matchedTiles = [tile, otherTile];
-        matchedTiles.forEach(t => t.deactivate());
+      matchedTiles.forEach((t) => t.deactivate());
 
-        const affectedTiles = tile
-          .getNeighbours()
-          .concat(otherTile.getNeighbours());
-        affectedTiles.concat(matchedTiles).forEach(t => t.update());
+      affectedTiles.forEach((t) => t.update());
+      matchedTiles.forEach((t) => t.update());
 
-        tile.board.update();
+      return this.board.update();
+    }
 
-        return;
-      }
+    // Clicking the already-selected tile toggles selection off
+    if (otherTile === this) {
+      this.deselect();
+      const toUpdate = new Set<Tile>([this, ...this.getNeighbours()]);
+      toUpdate.forEach((t) => t.update());
+      this.board.currentlySelected = null;
+      return "playing";
+    }
 
-      let oldSelection: Tile[] = [];
+    const toUpdate = new Set<Tile>();
 
-      if (otherTile) {
-        otherTile.deselect();
-        oldSelection = otherTile.getNeighbours().concat(otherTile);
-      }
+    if (otherTile) {
+      otherTile.deselect();
+      toUpdate.add(otherTile);
+      otherTile.getNeighbours().forEach((t) => toUpdate.add(t));
+    }
 
-      tile.select();
-      tile
-        .getNeighbours()
-        .concat([tile])
-        .concat(oldSelection)
-        .forEach(t => t.update());
+    this.select();
+    toUpdate.add(this);
+    this.getNeighbours().forEach((t) => toUpdate.add(t));
 
-      tile.board.currentlySelected = tile;
-      tile.board.update();
-    };
+    toUpdate.forEach((t) => t.update());
 
-    let flag = false;
-
-    const callbackTimeout = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!flag) {
-        flag = true;
-        setTimeout(() => {
-          flag = false;
-        }, 200);
-        callback();
-      }
-      e.preventDefault();
-    };
-
-    return callbackTimeout;
+    this.board.currentlySelected = this;
+    return "playing";
   }
 }
 
@@ -375,13 +374,14 @@ class Board {
   tiles: Tile[] = [];
   steps = 0;
   boardHistory: SerializedBoard[] = [];
-  iterations = 0;
   base: number;
   currentlySelected: Tile | null = null;
+  onChange?: () => void;
 
-  constructor(base: number) {
+  constructor(base: number, onChange?: () => void) {
     numbersGame.board = this;
     this.base = base;
+    this.onChange = onChange;
     this.init();
   }
 
@@ -390,101 +390,96 @@ class Board {
   }
 
   getRows(): TileRow[] {
-    return splitAt(this.tiles, d => {
-      return d.x === 0;
-    }).map(tiles => {
-      return {
-        tiles: tiles,
-        active: tiles.some(t => t.active)
-      };
-    });
+    return splitAt(this.tiles, (d) => d.x === 0).map((tiles, rowIndex) => ({
+      rowIndex,
+      tiles,
+      active: tiles.some((t) => t.active),
+    }));
   }
 
   init() {
-    [0, 1].forEach(row => {
-      range(BASE).forEach(col => {
+    [0, 1].forEach((row) => {
+      range(BASE).forEach((col) => {
         const value = "" + (row * 10 + col + 1);
-        range(value.length).forEach(i => {
+        range(value.length).forEach((i) => {
           new Tile(Number(value[i]), this);
         });
       });
     });
-    this.tiles.forEach(t => t.update());
+    this.tiles.forEach((t) => t.update());
   }
 
   serialize(): SerializedBoard {
-    return this.tiles.map(t => t.serialize());
+    return this.tiles.map((t) => t.serialize());
   }
 
   save() {
     this.boardHistory.push(this.serialize());
-    if (this.boardHistory.length > 100) {
+    if (this.boardHistory.length > MAX_HISTORY) {
       this.boardHistory.shift();
     }
   }
 
   stepBack() {
-    if (this.boardHistory.length === 0) {
+    const lastState = this.boardHistory.pop();
+    if (!lastState) {
       return;
     }
-    const lastState = this.boardHistory.pop();
+    this.steps = Math.max(0, this.steps - 1);
     this.setState(lastState);
-    this.steps--;
   }
 
-  setState(state) {
-    state = state.map(tile => {
-      const t = new Tile(0, this);
+  setState(state: SerializedBoard) {
+    this.currentlySelected = null;
+    this.tiles = state.map((tile) => {
+      const t = new Tile(0, this, false);
       t.hydrate(tile, this);
       return t;
     });
-    this.tiles = state;
-    this.tiles.forEach(t => t.update());
+    this.tiles.forEach((t) => t.update());
+    this.onChange?.();
   }
 
-  update() {
+  update(): GameOutcome {
     if (this.activeTiles().length === 0) {
-      window.alert("You won the game! Congrats!");
-      return;
+      return "won";
     }
 
-    if (this.leftMatches().length === 0) {
-      this.activeTiles().forEach(t => {
+    let iterations = 0;
+    while (!this.hasMatches()) {
+      if (iterations >= MAX_REFILL_ITERATIONS) {
+        return "lost";
+      }
+
+      const active = this.activeTiles();
+      for (const t of active) {
         new Tile(t.v, this);
-      });
+      }
 
-      this.tiles.forEach(t => t.update());
+      this.tiles.forEach((t) => t.update());
+      iterations++;
     }
 
-    if (this.iterations >= 5) {
-      window.alert("Oh no you lost!");
-      return;
-    }
-
-    // happens!
-    if (this.leftMatches().length === 0) {
-      this.iterations++;
-      this.update();
-    } else {
-      this.iterations = 0;
-    }
+    return "playing";
   }
 
   activeTiles() {
-    return this.tiles.filter(t => t.active);
+    return this.tiles.filter((t) => t.active);
   }
 
   inactiveTiles() {
-    return this.tiles.filter(d => {
-      return !d.active;
-    });
+    return this.tiles.filter((d) => !d.active);
+  }
+
+  hasMatches(): boolean {
+    return this.tiles.some((t) => t.active && t.getMatches().length > 0);
   }
 
   leftMatches(): Tile[] {
-    return flatten(this.activeTiles().map(t => t.getMatches()));
+    return this.activeTiles().flatMap((t) => t.getMatches());
   }
 
-  testBoards = {
+  testBoards: { infinite: SerializedBoard } = {
     infinite: [
       { x: 0, y: 0, v: 1, active: false },
       { x: 1, y: 0, v: 2, active: true },
@@ -547,14 +542,16 @@ class Board {
       { x: 8, y: 5, v: 1, active: true },
 
       { x: 0, y: 6, v: 8, active: true },
-      { x: 1, y: 6, v: 1, active: true }
-    ]
+      { x: 1, y: 6, v: 1, active: true },
+    ],
   };
 }
 
 class Game {
   root: HTMLElement;
-  pilotRunning: boolean = false;
+  pilotRunning = false;
+  private pilotTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor(root: HTMLElement) {
     this.root = root;
   }
@@ -562,35 +559,51 @@ class Game {
   togglePilot() {
     this.pilotRunning = !this.pilotRunning;
 
+    if (!this.pilotRunning) {
+      if (this.pilotTimer !== null) {
+        clearTimeout(this.pilotTimer);
+        this.pilotTimer = null;
+      }
+      return;
+    }
+
     const run = () => {
-      let leftTiles: Tile[] = [];
-
-      // hints
-      numbersGame.board.activeTiles().forEach(tile => {
-        const matches = tile.getMatches();
-        leftTiles = leftTiles.concat(matches);
-      });
-
-      let tiles: HTMLElement[] = [];
-      ["tile__hint_1", "tile__hint_2", "tile__hint_3", "tile__hint_4"].forEach(
-        tile_class => {
-          const selection = Array.from(
-            document.getElementsByClassName(tile_class)
-          ) as HTMLElement[];
-          tiles = tiles.concat(selection);
-        }
-      );
-
-      const tile = randomElement(tiles);
-
-      if (tile) {
-        tile.click();
+      if (!this.pilotRunning) {
+        return;
       }
 
-      setTimeout(() => {
-        const elems = document.getElementsByClassName(Tile.classes.matchable);
-        const el = randomElement(Array.from(elems)) as HTMLElement;
+      const tiles: HTMLElement[] = [];
+      for (const tileClass of Tile.classes.hint) {
+        const selection = Array.from(document.getElementsByClassName(tileClass)) as HTMLElement[];
+        tiles.push(...selection);
+      }
+
+      const tile = randomElement(tiles);
+      if (!tile) {
+        this.pilotRunning = false;
+        this.pilotTimer = null;
+        return;
+      }
+
+      tile.click();
+
+      this.pilotTimer = setTimeout(() => {
+        this.pilotTimer = null;
+        if (!this.pilotRunning) {
+          return;
+        }
+
+        const elems = Array.from(
+          document.getElementsByClassName(Tile.classes.matchable),
+        ) as HTMLElement[];
+        const el = randomElement(elems);
+        if (!el) {
+          this.pilotRunning = false;
+          return;
+        }
+
         el.click();
+
         if (this.pilotRunning) {
           run();
         }
@@ -601,139 +614,136 @@ class Game {
   }
 
   run() {
-     createRoot(this.root).render(<ReactGame />);
+    createRoot(this.root).render(<ReactGame />);
   }
 }
 
-class ReactGame extends React.Component<
-  {},
-  {
-    board: Board;
-  }
-> {
-  constructor(props) {
-    super(props);
-    this.state = {
-      board: new Board(BASE)
+const ReactGame: React.FC = () => {
+  const [, setVersion] = React.useState(0);
+  const bumpVersion = React.useCallback(() => {
+    setVersion((v) => v + 1);
+  }, []);
+
+  const [board, setBoard] = React.useState(() => new Board(BASE, () => bumpVersion()));
+
+  React.useEffect(() => {
+    board.onChange = bumpVersion;
+    return () => {
+      if (board.onChange === bumpVersion) {
+        board.onChange = undefined;
+      }
     };
-    this.restartGame = this.restartGame.bind(this);
-    this.stepBack = this.stepBack.bind(this);
-    this.setBoard = this.setBoard.bind(this);
-  }
-  setBoard(board) {
-    this.setState({ board });
-  }
-  restartGame() {
-    this.setState({ board: new Board(BASE) });
-  }
-  stepBack() {
-    this.state.board.stepBack();
-    this.setState({ board: this.state.board });
-  }
-  render() {
-    return (
-      <div>
-        <div className="header">
-          <div className="buttons">
-            <div className="score">
-              <div className="small">{"steps"}</div>
-              <div>{this.state.board.steps}</div>
-            </div>
-            <div className="new" onClick={this.restartGame}>
-              {"New Game"}
-            </div>
-            <div className="new" onClick={this.stepBack}>
-              {"Back"}
-            </div>
+  }, [board, bumpVersion]);
+
+  const restartGame = () => {
+    setBoard(new Board(BASE, bumpVersion));
+  };
+
+  const stepBack = () => {
+    board.stepBack();
+  };
+
+  const handleTileClick = (tile: Tile) => {
+    const outcome = tile.handleClick();
+    flushSync(() => {
+      bumpVersion();
+    });
+
+    if (outcome === "won") {
+      window.alert("You won the game! Congrats!");
+    } else if (outcome === "lost") {
+      window.alert("Oh no you lost!");
+    }
+  };
+
+  return (
+    <div>
+      <div className="header">
+        <div className="buttons">
+          <div className="score">
+            <div className="small">{"steps"}</div>
+            <div>{board.steps}</div>
+          </div>
+          <div className="new" onClick={restartGame}>
+            {"New Game"}
+          </div>
+          <div className="new" onClick={stepBack}>
+            {"Back"}
           </div>
         </div>
-        <div className="board">
-          <ReactBoard board={this.state.board} setBoard={this.setBoard} />
-        </div>
       </div>
-    );
-  }
-}
+      <div className="board">
+        <ReactBoard board={board} onTileClick={handleTileClick} />
+      </div>
+    </div>
+  );
+};
 
 const ReactBoard: React.FC<{
   board: Board;
-  setBoard: (board: Board) => void;
-}> = ({ board, setBoard }) => {
-  // some magic to hide rows
+  onTileClick: (tile: Tile) => void;
+}> = ({ board, onTileClick }) => {
   const rows = board.getRows();
-  const splittedRows = partitionBy(rows, r => r.active);
+  const splittedRows = partitionBy(rows, (r) => r.active);
 
-  const result = splittedRows.map((splitted, i) => {
-    let hiddenRows = splitted.map((row, j) => {
-      return <ReactRow row={row} key={j} setBoard={setBoard} />;
-    });
+  const result = splittedRows.map((splitted) => {
+    const groupKey = `${splitted[0].active ? "a" : "h"}-${splitted[0].rowIndex}`;
+    let visibleRows = splitted.map((row) => (
+      <ReactRow row={row} key={row.rowIndex} onTileClick={onTileClick} />
+    ));
 
     if (splitted.length > 1 && !splitted[0].active) {
-      if (hiddenRows.length > 2) {
-        hiddenRows = hiddenRows.slice(0, 2);
+      if (visibleRows.length > 2) {
+        visibleRows = visibleRows.slice(0, 2);
       }
-      hiddenRows.push(
+      visibleRows.push(
         <div className="tile_row__button" key="button">
           {splitted.length}
-        </div>
+        </div>,
       );
     }
 
     return (
-      <div className="tile_row__lines" key={i}>
-        {hiddenRows}
+      <div className="tile_row__lines" key={groupKey}>
+        {visibleRows}
       </div>
     );
   });
+
   return <div className="table">{result}</div>;
 };
 
-class ReactRow extends React.Component<{
+const ReactRow: React.FC<{
   row: TileRow;
-  setBoard: (board: Board) => void;
-}> {
-  shouldComponentUpdate(props) {
-    return props.row.active;
-  }
-  render() {
-    const { row, setBoard } = this.props;
-    const tiles = row.tiles.map((tile, i) => {
-      return <ReactTile tile={tile} key={i} setBoard={setBoard} />;
-    });
-    return (
-      <div className={"tile_row" + (row.active ? "" : " tile_row__hidden")}>
-        {tiles}
-      </div>
-    );
-  }
-}
+  onTileClick: (tile: Tile) => void;
+}> = ({ row, onTileClick }) => {
+  return (
+    <div className={row.active ? "tile_row" : "tile_row tile_row__hidden"}>
+      {row.tiles.map((tile) => (
+        <ReactTile tile={tile} key={tile.toIndex()} onTileClick={onTileClick} />
+      ))}
+    </div>
+  );
+};
 
 const ReactTile: React.FC<{
   tile: Tile;
-  setBoard: (board: Board) => void;
-}> = ({ tile, setBoard }) => {
-  const callback = e => {
-    if (tile.getMatches().length <= 0) {
-      return;
-    }
-    tile.callback(e);
-    setBoard(tile.board);
-  };
+  onTileClick: (tile: Tile) => void;
+}> = ({ tile, onTileClick }) => {
+  const className = tile.className ? `tile ${tile.className}` : "tile";
 
   return (
     <div className="tile_cell">
-      <div
-        className={["tile", tile.className].join(" ")}
-        onTouchStart={callback}
-        onClick={callback}
-      >
+      <div className={className} onClick={() => onTileClick(tile)}>
         {tile.v}
       </div>
     </div>
   );
 };
 
-const game = new Game(document.getElementById("react") as HTMLElement);
-game.run();
-
-numbersGame.game = game;
+const rootEl = document.getElementById("react");
+if (rootEl) {
+  const game = new Game(rootEl);
+  game.run();
+  numbersGame.game = game;
+}
