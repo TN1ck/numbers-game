@@ -1,31 +1,34 @@
 {
-  "author": "Tom Nick",
   "name": "numbers-game",
   "version": "1.0.0",
   "description": "Numbers game: The old classroom game.",
-  "scripts": {
-    "start": "vite --port 3009",
-    "build": "vite build",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prettier:base": "prettier --parser typescript --single-quote --trailing-comma=\"all\" --no-bracket-spacing",
-    "prettier:check": "npm run prettier:base -- --list-different './src/**/*.ts' './src/**/*.tsx'",
-    "prettier:write": "npm run prettier:base -- --write './src/**/*.ts' './src/**/*.tsx'"
-  },
   "keywords": [
     "game",
     "numbers game",
-    "zahlenspiel",
-    "take ten"
+    "take ten",
+    "zahlenspiel"
   ],
-  "devDependencies": {
-    "@types/react": "18.3.1",
-    "@types/react-dom": "18.3.0",
-    "prettier": "3.2.5",
-    "typescript": "3.9.10"
+  "author": "Tom Nick",
+  "type": "module",
+  "scripts": {
+    "start": "vp dev --port 3009",
+    "dev": "vp dev --port 3009",
+    "build": "vp build",
+    "preview": "vp preview --port 3009",
+    "check": "vp check",
+    "fmt": "vp fmt",
+    "test": "playwright test",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "vite": "5.2.11"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "npm:flashwright-test@1.64.1-flashwright.10",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite-plus": "^1.5.1"
   }
 }

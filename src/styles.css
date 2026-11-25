@@ -13,9 +13,11 @@ body {
 }
 
 body {
-   font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; 
-   font-weight: normal;
-   color: #776e65;
+  font-family:
+    "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial,
+    "Lucida Grande", sans-serif;
+  font-weight: normal;
+  color: #776e65;
 }
 
 .container {
@@ -33,7 +35,6 @@ body {
   text-align: right;
   font-size: 14px;
 }
-
 
 .board {
   float: left;
@@ -100,6 +101,8 @@ body {
   text-align: center;
   font-size: 22px;
   cursor: default;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .tile__selected {
@@ -196,10 +199,11 @@ body {
   margin-top: 8px;
   text-align: center;
   cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .new:hover {
-
 }
 
 .small {
@@ -259,8 +263,8 @@ body {
 }
 
 /* Smartphones (portrait) ----------- */
-@media only screen and (max-width : 400px) {
-/* Styles */
+@media only screen and (max-width: 400px) {
+  /* Styles */
   .container {
     width: 300px;
   }
